@@ -101,7 +101,7 @@ namespace EFfluentify.Tests.UseCases
             var inputDir = Path.Combine(testProjectRoot, "TestData", testcaseName);
             var outputDir = Path.Combine(tempRoot, "EFfluentify.Tests", "Output");
 
-            var expectedDirectory = @"E:\EfFluentify";
+            var expectedDirectory = @"E:\EfFluentify\EfFluentify";
             var expectedOutputDir = Path.Combine(expectedDirectory, expectedOutput, testcaseName);
             var expectedOutputRemovalDir = Path.Combine(expectedDirectory, expectedOutputRemoval, testcaseName);
 

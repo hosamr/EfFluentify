@@ -1,0 +1,173 @@
+﻿using EFfluentify.Application.Helpers;
+using EFfluentify.Application.Ports;
+using EFfluentify.Domain.Models;
+using EFfluentify.Domain.Rules;
+using System.Text;
+
+namespace EFfluentify.Infrastructure.CodeGen
+{
+    public sealed class CSharpConfigEmitter : ICodeGenerator
+    {
+        private RuleRegistry _rules;
+        private IReadOnlyList<EntityModel> _entities = Array.Empty<EntityModel>();
+        public CSharpConfigEmitter()
+        {
+            _entities = Array.Empty<EntityModel>();
+            _rules = default!;
+        }
+        public Dictionary<string, string> Generate(IEnumerable<EntityModel> entities, PipelineOptions options, RuleRegistry rules)
+        {
+            _rules = rules ?? throw new ArgumentNullException(nameof(rules));
+            _entities = entities?.ToList() ?? throw new ArgumentNullException(nameof(entities));
+
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            if (options.ManyFiles)
+            {
+                foreach (var e in _entities)
+                {
+                    var code = GenerateSingle(options.RootNamespace, e);
+                    var fileName = $"{e.Name}Configuration.cs";
+                    map[fileName] = code;
+                }
+            }
+            else
+            {
+                var sb = addHeader(options.RootNamespace);
+                foreach (var e in _entities)
+                {
+                    AppendConfig(sb, e);
+                    sb.AppendLine();
+                }
+                map["EntityConfigurations.cs"] = sb.ToString();
+            }
+            return map;
+        }
+
+        private string GenerateSingle(string rootNs, EntityModel e)
+        {
+            var sb = addHeader(rootNs);
+            AppendConfig(sb, e);
+            return sb.ToString();
+        }
+
+        private void AppendConfig(StringBuilder sb, EntityModel e)
+        {
+            sb.AppendLine($"internal sealed class {e.Name}Configuration : IEntityTypeConfiguration<{e.Name}>");
+            sb.AppendLine("{");
+            sb.AppendLine($"    public void Configure(EntityTypeBuilder<{e.Name}> builder)");
+            sb.AppendLine("    {");
+
+            var entityLines = _rules.GetCallsForEntity(e).ToList();
+            if (entityLines.Count > 0)
+            {
+                foreach (var line in entityLines)
+                    sb.AppendLine($"        {line}");
+            }
+            else
+            {
+                sb.AppendLine($"        builder.ToTable(\"{e.Name}\");");
+            }
+
+            sb.AppendLine();
+
+            var keyProps = e.Properties
+                .Where(p => p.Attributes.Any(a => a.Name is "Key" or "KeyAttribute"))
+                .Select(p => p.Name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var ignoredProps = e.Properties
+                .Where(p => p.Attributes.Any(a => a.Name is "NotMapped" or "NotMappedAttribute"))
+                .Select(p => p.Name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var fkPropNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var prop in e.Properties)
+            {
+                var fkAttr = prop.Attributes.FirstOrDefault(a => a.Name is "ForeignKey" or "ForeignKeyAttribute");
+                if (fkAttr == null)
+                    continue;
+                var arg0 = fkAttr.PositionalArgs.FirstOrDefault() as string;
+                if (string.IsNullOrWhiteSpace(arg0))
+                    continue;
+
+                if (EfTypeClassifier.IsNavigationProperty(prop, _entities) || EfTypeClassifier.IsCollectionType(prop.TypeName))
+                {
+                    foreach (var fk in SplitFkNames(arg0))
+                        fkPropNames.Add(fk);
+                }
+                else
+                {
+                    fkPropNames.Add(prop.Name);
+                }
+
+            }
+            foreach (var p in e.Properties)
+            {
+                if (EfTypeClassifier.IsNavigationProperty(p, _entities))
+                    continue;
+
+                if (ignoredProps.Contains(p.Name))
+                    continue;
+
+                var calls = _rules.GetCallsForProperty(p)
+                            .Where(c => !string.IsNullOrWhiteSpace(c))
+                            .ToList();
+
+                if (keyProps.Contains(p.Name) && calls.Count == 0)
+                    continue;
+
+                if (fkPropNames.Contains(p.Name) && calls.Count == 0)
+                    continue;
+
+                sb.Append($"        builder.Property(x => x.{p.Name})");
+
+                foreach (var c in calls.Distinct(StringComparer.Ordinal))
+                    sb.Append(c);
+
+                sb.AppendLine(";");
+            }
+            sb.AppendLine("    }");
+            sb.AppendLine("}");
+        }
+
+        private StringBuilder addHeader(string rootNs)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("// <auto-generated />");
+            sb.AppendLine($"namespace {rootNs};");
+            sb.AppendLine();
+            sb.AppendLine("using Microsoft.EntityFrameworkCore;");
+            sb.AppendLine("using Microsoft.EntityFrameworkCore.Metadata.Builders;");
+            sb.AppendLine();
+            return sb;
+        }
+        private IEnumerable<string> SplitFkNames(string raw)
+        {
+            var normalized = NormalizeMemberName(raw);
+            if (string.IsNullOrWhiteSpace(normalized))
+                yield break;
+
+            foreach (var part in normalized.Split(','))
+            {
+                var p = part.Trim();
+                if (!string.IsNullOrWhiteSpace(p))
+                    yield return p;
+            }
+        }
+        private string? NormalizeMemberName(string raw)
+        {
+            var s = raw.Trim();
+
+            if (s.StartsWith("nameof(", StringComparison.Ordinal) && s.EndsWith(")", StringComparison.Ordinal))
+                s = s.Substring("nameof(".Length, s.Length - "nameof(".Length - 1).Trim();
+
+            s = s.Trim('"'); // strip quotes if parser kept them
+            return string.IsNullOrWhiteSpace(s) ? null : s;
+        }
+
+
+
+    }
+}

@@ -34,7 +34,7 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\EFfluentify.Application\EFfluentify.Application.csproj" />
-    <ProjectReference Include="..\..\EFfluentify.Infrastructure\EFfluentify.Infrastructure.csproj" />
+    <ProjectReference Include="..\EFfluentify.Application\EFfluentify.Application.csproj" />
+    <ProjectReference Include="..\EFfluentify.Infrastructure\EFfluentify.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

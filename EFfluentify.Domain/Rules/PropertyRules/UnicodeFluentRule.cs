@@ -1,0 +1,38 @@
+﻿using EFfluentify.Domain.Models;
+using EFfluentify.Domain.Rules.Interfaces;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace EFfluentify.Domain.Rules.PropertyRules
+{
+    public sealed class UnicodeFluentRule : IPropertyFluentRule
+    {
+        public bool CanApply(AttributeModel attribute, PropertyModel property)
+            => attribute.Name is "Unicode" or "UnicodeAttribute";
+
+        public string? GetFluentCall(AttributeModel attribute, PropertyModel property)
+        {
+
+            if (attribute.PositionalArgs.Count > 0)
+            {
+                bool isUnicode;
+
+                if (Boolean.TryParse(attribute.PositionalArgs[0], out isUnicode))
+                {
+                    return $".IsUnicode({isUnicode.ToString().ToLowerInvariant()})";
+                }
+            }
+            return ".IsUnicode()";
+        }
+
+        public IEnumerable<string> GetAnnotationPropertyNames()
+        {
+            yield return "Unicode";
+            yield return "UnicodeAttribute";
+        }
+    }
+
+}
