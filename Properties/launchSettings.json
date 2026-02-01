@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "EfFluentify": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}
