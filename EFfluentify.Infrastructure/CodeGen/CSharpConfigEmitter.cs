@@ -1,18 +1,18 @@
-﻿using EFfluentify.Application.Helpers;
+﻿using System.Text;
+using EFfluentify.Application.Helpers;
 using EFfluentify.Application.Ports;
 using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules;
-using System.Text;
 
 namespace EFfluentify.Infrastructure.CodeGen
 {
     public sealed class CSharpConfigEmitter : ICodeGenerator
     {
         private RuleRegistry _rules;
-        private IReadOnlyList<EntityModel> _entities = Array.Empty<EntityModel>();
+        private IReadOnlyList<EntityModel> _entities = [];
         public CSharpConfigEmitter()
         {
-            _entities = Array.Empty<EntityModel>();
+            _entities = [];
             _rules = default!;
         }
         public Dictionary<string, string> Generate(IEnumerable<EntityModel> entities, PipelineOptions options, RuleRegistry rules)
@@ -33,7 +33,7 @@ namespace EFfluentify.Infrastructure.CodeGen
             }
             else
             {
-                var sb = addHeader(options.RootNamespace);
+                var sb = AddHeader(options.RootNamespace);
                 foreach (var e in _entities)
                 {
                     AppendConfig(sb, e);
@@ -46,44 +46,67 @@ namespace EFfluentify.Infrastructure.CodeGen
 
         private string GenerateSingle(string rootNs, EntityModel e)
         {
-            var sb = addHeader(rootNs);
+            var sb = AddHeader(rootNs);
             AppendConfig(sb, e);
             return sb.ToString();
         }
 
-        private void AppendConfig(StringBuilder sb, EntityModel e)
+        private void AppendConfig(StringBuilder sb, EntityModel entity)
         {
-            sb.AppendLine($"internal sealed class {e.Name}Configuration : IEntityTypeConfiguration<{e.Name}>");
+            sb.AppendLine($"internal sealed class {entity.Name}Configuration : IEntityTypeConfiguration<{entity.Name}>");
             sb.AppendLine("{");
-            sb.AppendLine($"    public void Configure(EntityTypeBuilder<{e.Name}> builder)");
+            sb.AppendLine($"    public void Configure(EntityTypeBuilder<{entity.Name}> builder)");
             sb.AppendLine("    {");
 
-            var entityLines = _rules.GetCallsForEntity(e).ToList();
-            if (entityLines.Count > 0)
+            var configLines = GenerateEntityConfiguration(entity);
+            foreach (var line in configLines)
             {
-                foreach (var line in entityLines)
-                    sb.AppendLine($"        {line}");
-            }
-            else
-            {
-                sb.AppendLine($"        builder.ToTable(\"{e.Name}\");");
+                sb.AppendLine($"        {line}");
             }
 
             sb.AppendLine();
 
-            var keyProps = e.Properties
+            var keyProps = GetKeyProperties(entity);
+            var ignoredProps = GetIgnoredProperties(entity);
+            var fkProps = GetForeignKeyProperties(entity);
+
+            ConfigureProperties(sb, entity, keyProps, ignoredProps, fkProps);
+
+            sb.AppendLine("    }");
+            sb.AppendLine("}");
+        }
+
+        private List<string> GenerateEntityConfiguration(EntityModel entity)
+        {
+            var entityLines = _rules.GetCallsForEntity(entity).ToList();
+            if (entityLines.Count > 0)
+            {
+                return entityLines;
+            }
+            return [$"builder.ToTable(\"{entity.Name}\");"];
+        }
+
+        private static HashSet<string> GetKeyProperties(EntityModel entity)
+        {
+            return entity.Properties
                 .Where(p => p.Attributes.Any(a => a.Name is "Key" or "KeyAttribute"))
                 .Select(p => p.Name)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
 
-            var ignoredProps = e.Properties
+        private static HashSet<string> GetIgnoredProperties(EntityModel entity)
+        {
+            return entity.Properties
                 .Where(p => p.Attributes.Any(a => a.Name is "NotMapped" or "NotMappedAttribute"))
                 .Select(p => p.Name)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
 
+        private HashSet<string> GetForeignKeyProperties(EntityModel entity)
+        {
             var fkPropNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var prop in e.Properties)
+            foreach (var prop in entity.Properties)
             {
                 var fkAttr = prop.Attributes.FirstOrDefault(a => a.Name is "ForeignKey" or "ForeignKeyAttribute");
                 if (fkAttr == null)
@@ -94,45 +117,47 @@ namespace EFfluentify.Infrastructure.CodeGen
 
                 if (EfTypeClassifier.IsNavigationProperty(prop, _entities) || EfTypeClassifier.IsCollectionType(prop.TypeName))
                 {
-                    foreach (var fk in SplitFkNames(arg0))
+                    foreach (var fk in EfTypeClassifier.SplitFkNames(arg0))
                         fkPropNames.Add(fk);
                 }
                 else
                 {
                     fkPropNames.Add(prop.Name);
                 }
-
             }
-            foreach (var p in e.Properties)
+            return fkPropNames;
+        }
+
+        private void ConfigureProperties(StringBuilder sb, EntityModel entity, HashSet<string> keyProps, HashSet<string> ignoredProps, HashSet<string> fkProps)
+        {
+            foreach (var prop in entity.Properties)
             {
-                if (EfTypeClassifier.IsNavigationProperty(p, _entities))
+                if (EfTypeClassifier.IsNavigationProperty(prop, _entities))
                     continue;
 
-                if (ignoredProps.Contains(p.Name))
+                if (ignoredProps.Contains(prop.Name))
                     continue;
 
-                var calls = _rules.GetCallsForProperty(p)
+                var calls = _rules.GetCallsForProperty(prop)
                             .Where(c => !string.IsNullOrWhiteSpace(c))
                             .ToList();
 
-                if (keyProps.Contains(p.Name) && calls.Count == 0)
+                if (keyProps.Contains(prop.Name) && calls.Count == 0)
                     continue;
 
-                if (fkPropNames.Contains(p.Name) && calls.Count == 0)
+                if (fkProps.Contains(prop.Name) && calls.Count == 0)
                     continue;
 
-                sb.Append($"        builder.Property(x => x.{p.Name})");
+                sb.Append($"        builder.Property(x => x.{prop.Name})");
 
                 foreach (var c in calls.Distinct(StringComparer.Ordinal))
                     sb.Append(c);
 
                 sb.AppendLine(";");
             }
-            sb.AppendLine("    }");
-            sb.AppendLine("}");
         }
 
-        private StringBuilder addHeader(string rootNs)
+        private static StringBuilder AddHeader(string rootNs)
         {
             var sb = new StringBuilder();
             sb.AppendLine("// <auto-generated />");
@@ -143,31 +168,6 @@ namespace EFfluentify.Infrastructure.CodeGen
             sb.AppendLine();
             return sb;
         }
-        private IEnumerable<string> SplitFkNames(string raw)
-        {
-            var normalized = NormalizeMemberName(raw);
-            if (string.IsNullOrWhiteSpace(normalized))
-                yield break;
-
-            foreach (var part in normalized.Split(','))
-            {
-                var p = part.Trim();
-                if (!string.IsNullOrWhiteSpace(p))
-                    yield return p;
-            }
-        }
-        private string? NormalizeMemberName(string raw)
-        {
-            var s = raw.Trim();
-
-            if (s.StartsWith("nameof(", StringComparison.Ordinal) && s.EndsWith(")", StringComparison.Ordinal))
-                s = s.Substring("nameof(".Length, s.Length - "nameof(".Length - 1).Trim();
-
-            s = s.Trim('"'); // strip quotes if parser kept them
-            return string.IsNullOrWhiteSpace(s) ? null : s;
-        }
-
-
 
     }
 }

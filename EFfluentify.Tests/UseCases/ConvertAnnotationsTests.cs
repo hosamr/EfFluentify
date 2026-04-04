@@ -16,6 +16,7 @@ namespace EFfluentify.Tests.UseCases
     public class ConvertAnnotationsTests
     {
         private const string TestCase1 = "TestCase1";
+        private const string TestFkCases = "TestFkCases";
         private const string ExpectedOutput = "ExpectedOutput";
         private const string ExpectedOutputRemoval = "ExpectedOutputRemoval";
 
@@ -24,7 +25,7 @@ namespace EFfluentify.Tests.UseCases
         [InlineData(false, true)]
         [InlineData(true, false)]
         [InlineData(false, false)]
-        public async Task Run_Pipeline_For_TestCase1_With_All_Flag_Combinations_Succeeds(bool removeAnnotations,bool manyFiles)
+        public async Task Run_Pipeline_For_TestCase1_With_All_Flag_Combinations_Succeeds(bool removeAnnotations, bool manyFiles)
         {
             var options = new PipelineOptions
             {
@@ -35,6 +36,26 @@ namespace EFfluentify.Tests.UseCases
             await RunTestCaseWithOptionsAsync(
                 options,
                 TestCase1,
+                ExpectedOutput,
+                ExpectedOutputRemoval);
+        }
+
+        [Theory]
+        [InlineData(true, true)]
+        [InlineData(false, true)]
+        [InlineData(true, false)]
+        [InlineData(false, false)]
+        public async Task Run_Pipeline_For_TestFkCases(bool removeAnnotations, bool manyFiles)
+        {
+            var options = new PipelineOptions
+            {
+                RemoveAnnotationsFromOriginal = removeAnnotations,
+                ManyFiles = manyFiles
+            };
+
+            await RunTestCaseWithOptionsAsync(
+                options,
+                TestFkCases,
                 ExpectedOutput,
                 ExpectedOutputRemoval);
         }
@@ -64,6 +85,28 @@ namespace EFfluentify.Tests.UseCases
                 await fileManager.writeFilesToDiskAsync(results, options.OutputDirectory);
             });
         }
+
+        [Fact]
+        public async Task RegenerateTestFkCases_ExpectedOutput_SingleFile()
+        {
+            var options = new PipelineOptions
+            {
+                RemoveAnnotationsFromOriginal = false,
+                ManyFiles = false,
+                OutputDirectory = @"e:\EfFluentify\EfFluentify\ExpectedOutput\TestFkCasesSingleFile"
+            };
+
+            var solutionRoot = TestingHelper.FindSolutionRoot();
+            var testProjectRoot = Path.Combine(solutionRoot, "EFfluentify.Tests");
+            var inputDir = Path.Combine(testProjectRoot, "TestData", TestFkCases);
+
+            IFileManager fileManager = new FileManager();
+            var useCase = CreateUseCase(fileManager);
+            IEnumerable<string> inputs = new[] { inputDir };
+
+            var results = await useCase.Run(inputs, options);
+            await fileManager.writeFilesToDiskAsync(results, options.OutputDirectory);
+        }
         [Fact]
         public async Task TestCase1_When_InputDirectory_IsInvalid_Should_DoNothing()
         {
@@ -88,10 +131,10 @@ namespace EFfluentify.Tests.UseCases
 
             var results = await useCase.Run(inputs, options);
             Assert.Empty(results);
-            Assert.False(Directory.Exists(outputDir),"Output directory should not be created when input directory is invalid.");
+            Assert.False(Directory.Exists(outputDir), "Output directory should not be created when input directory is invalid.");
         }
 
-        private async Task RunTestCaseWithOptionsAsync(PipelineOptions pipelineOptions, string testcaseName,string expectedOutput, string expectedOutputRemoval)
+        private async Task RunTestCaseWithOptionsAsync(PipelineOptions pipelineOptions, string testcaseName, string expectedOutput, string expectedOutputRemoval)
         {
             var solutionRoot = TestingHelper.FindSolutionRoot();
             var tempDirectory = Directory.CreateTempSubdirectory("EFfluentifyTests_");
@@ -210,7 +253,7 @@ namespace EFfluentify.Tests.UseCases
             Assert.Equal(TestingHelper.Normalize(expectedText), TestingHelper.Normalize(actualText));
         }
 
-        private async Task ApplyAnnotationRemovalAsync(IFileManager fileManager,IEnumerable<string> inputs)
+        private async Task ApplyAnnotationRemovalAsync(IFileManager fileManager, IEnumerable<string> inputs)
         {
             var annotationRemover = new AnnotationRemover(fileManager);
             var changes = await annotationRemover.PrepareRemovalAsync(inputs);
@@ -223,6 +266,8 @@ namespace EFfluentify.Tests.UseCases
                 await fileManager.WriteFileAsync(change.FilePath, change.UpdatedContent);
             }
         }
+
+
 
     }
 }

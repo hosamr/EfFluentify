@@ -14,12 +14,14 @@
     <Compile Remove="TestData\TestCase1\Order.cs" />
     <Compile Remove="TestData\TestCase1\Profile.cs" />
     <Compile Remove="TestData\TestCase1\User.cs" />
+    <Compile Remove="TestData\TestFkCases\TestFkModels.cs" />
     <Compile Remove="TestData\User.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="TestData\TestCase1\Order.cs" />
     <None Include="TestData\TestCase1\Profile.cs" />
     <None Include="TestData\TestCase1\User.cs" />
+    <None Include="TestData\TestFkCases\TestFkModels.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.9" />

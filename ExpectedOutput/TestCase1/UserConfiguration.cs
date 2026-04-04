@@ -13,7 +13,7 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
 
 		builder.Ignore(e => e.TemporaryToken);
 		builder.Ignore(e => e.TemporaryToken2);
-		builder.HasOne(x => x.Manager).WithMany().HasForeignKey(x => x.ManagerId);
+		builder.HasOne(x => x.Manager).WithMany(x => x.Subordinates).HasForeignKey(x => x.ManagerId);
 
         builder.Property(x => x.Id).ValueGeneratedOnAdd();
         builder.Property(x => x.Name).IsRequired().HasMaxLength(50);

@@ -13,7 +13,7 @@ internal sealed class ProfileConfiguration : IEntityTypeConfiguration<Profile>
 		builder.HasComment("Main Profile table");
 		builder.HasIndex(e => e.Email);
 		builder.Ignore(e => e.Tags);
-		builder.HasOne(x => x.User).WithOne(x => x.Profile).HasForeignKey<Profile>(x => x.UserId);
+		builder.HasOne(x => x.User).WithOne(x => x.Profile).HasForeignKey<Profile>(x => x.UserId).IsRequired();
 
         builder.Property(x => x.Name);
 		builder.Property(x => x.Email);

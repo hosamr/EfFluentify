@@ -1,4 +1,5 @@
-﻿using EFfluentify.Domain.Models;
+﻿using EFfluentify.Application.Helpers;
+using EFfluentify.Domain.Models;
 
 namespace EFfluentify.Domain.Rules.Helpers
 {
@@ -16,23 +17,9 @@ namespace EFfluentify.Domain.Rules.Helpers
 
         public bool TryGetEntity(string typeName, out EntityModel entity)
         {
-            typeName = NormalizeTypeName(typeName);
+            typeName = EfTypeClassifier.NormalizeTypeName(typeName);
             return _byName.TryGetValue(typeName, out entity!);
-        }
-
-        private static string NormalizeTypeName(string typeName)
-        {
-            var t = typeName.Trim();
-
-            // strip nullable markers like "Customer?" if you keep them in TypeName
-            t = t.TrimEnd('?');
-
-            // strip namespace if TypeName is "MyApp.Models.Customer"
-            var lastDot = t.LastIndexOf('.');
-            if (lastDot >= 0)
-                t = t[(lastDot + 1)..];
-
-            return t;
+            
         }
     }
 

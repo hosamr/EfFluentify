@@ -34,6 +34,8 @@ namespace EFfluentify.Domain.Rules.EntityRules
             yield return "ForeignKeyAttribute";
             yield return "InverseProperty";
             yield return "InversePropertyAttribute";
+            yield return "DeleteBehavior";
+            yield return "DeleteBehaviorAttribute";
         }
 
         private sealed record ForeignKeyPair(
@@ -57,7 +59,7 @@ namespace EFfluentify.Domain.Rules.EntityRules
 
                 if (IsNavigationProperty(entity, prop))
                 {
-                    var fkProps = SplitFkNames(arg0).ToList();
+                    var fkProps = EfTypeClassifier.SplitFkNames(arg0).ToList();
                     if (fkProps.Count == 0)
                         continue;
 
@@ -70,8 +72,7 @@ namespace EFfluentify.Domain.Rules.EntityRules
                 }
                 else
                 {
-                    // [ForeignKey(nameof(Customer))] on scalar FK property
-                    var navName = NormalizeMemberName(arg0);
+                    var navName = EfTypeClassifier.NormalizeMemberName(arg0);
                     if (string.IsNullOrWhiteSpace(navName))
                         continue;
 
@@ -90,13 +91,13 @@ namespace EFfluentify.Domain.Rules.EntityRules
         private IEnumerable<string> BuildRelationshipLines(EntityModel dependentEntity, ForeignKeyPair pair)
         {
             // Determine principal type
-            var principalType = NormalizeTypeName(pair.PrincipalTypeName);
+            var principalType = EfTypeClassifier.NormalizeTypeName(pair.PrincipalTypeName);
             if (string.IsNullOrWhiteSpace(principalType))
             {
                 // Try fallback: infer from nav property on dependent entity
                 var navProp = dependentEntity.Properties.FirstOrDefault(p => p.Name == pair.NavName);
                 if (navProp != null)
-                    principalType = NormalizeTypeName(navProp.TypeName);
+                    principalType = EfTypeClassifier.NormalizeTypeName(navProp.TypeName);
             }
 
             // choose WithMany vs WithOne (+ inverse nav if can find)
@@ -126,6 +127,12 @@ namespace EFfluentify.Domain.Rules.EntityRules
                 sb.Append(".IsRequired()");
             }
 
+            var deleteBehavior = GetDeleteBehavior(dependentEntity, pair);
+            if (!string.IsNullOrEmpty(deleteBehavior))
+            {
+                sb.Append($".OnDelete({deleteBehavior})");
+            }
+
             sb.Append(";");
             yield return sb.ToString();
         }
@@ -139,7 +146,7 @@ namespace EFfluentify.Domain.Rules.EntityRules
                 // We need to know if it's a Collection or Reference to choose WithMany vs WithOne.
 
                 // If we can resolve principal entity, check the property type
-                var principalTypeName = NormalizeTypeName(pair.PrincipalTypeName);
+                var principalTypeName = EfTypeClassifier.NormalizeTypeName(pair.PrincipalTypeName);
                 if (_ctx.TryGetEntity(principalTypeName, out var principal))
                 {
                     var invProp = principal.Properties.FirstOrDefault(p => p.Name == pair.InverseNavName);
@@ -164,7 +171,7 @@ namespace EFfluentify.Domain.Rules.EntityRules
             }
 
             // 2. Resolve Principal and look for [InverseProperty] pointing BACK to us
-            var pType = NormalizeTypeName(pair.PrincipalTypeName);
+            var pType = EfTypeClassifier.NormalizeTypeName(pair.PrincipalTypeName);
             if (_ctx.TryGetEntity(pType, out var principalEntity))
             {
                 // Search for a property on Principal that has [InverseProperty(pair.NavName)]
@@ -173,7 +180,8 @@ namespace EFfluentify.Domain.Rules.EntityRules
                     {
                         var attr = p.Attributes.FirstOrDefault(a => a.Name is "InverseProperty" or "InversePropertyAttribute");
                         if (attr == null) return false;
-                        var arg = NormalizeMemberName(attr.PositionalArgs.FirstOrDefault() as string ?? "");
+
+                        var arg = EfTypeClassifier.NormalizeMemberName(attr.PositionalArgs.FirstOrDefault() as string ?? "");
                         return string.Equals(arg, pair.NavName, StringComparison.Ordinal);
                     });
 
@@ -204,12 +212,25 @@ namespace EFfluentify.Domain.Rules.EntityRules
                 }
                 else
                 {
-                    // Look for single Collection candidate
+                    // Standard heuristic:
+                    // If there is exactly one Collection candidate -> WithMany
+                    // If there is exactly one Reference candidate -> WithOne (Standard 1:1)
                     var cols = inverseCandidates.Where(c => c.isCollection).ToList();
-                    if (cols.Count == 1)
+                    var refs = inverseCandidates.Where(c => !c.isCollection).ToList();
+
+                    if (cols.Count == 1 && refs.Count == 0)
                         return ($".WithMany(x => x.{cols[0].name})", false);
 
-                    // If ambiguous (multiple collections) or none (Back-reference might not exist), default
+                    if (refs.Count == 1 && cols.Count == 0)
+                        return ($".WithOne(x => x.{refs[0].name})", true);
+
+                    // If ambiguous (multiple match), prefer Collection if any exist (1:N is more common than 1:1)
+                    // Use the first collection candidate instead of defaulting to .WithMany()
+                    if (cols.Count > 0)
+                        return ($".WithMany(x => x.{cols[0].name})", false);
+
+                    // If only multiple refs exist...? Rare. Default to WithMany is safer unless we are sure.
+                    // But if we have NO candidates, we fall through.
                     return (".WithMany()", false);
                 }
             }
@@ -232,12 +253,12 @@ namespace EFfluentify.Domain.Rules.EntityRules
                 if (EfTypeClassifier.IsCollectionType(p.TypeName))
                 {
                     var elem = EfTypeClassifier.TryGetCollectionElementType(p.TypeName);
-                    if (string.Equals(NormalizeTypeName(elem ?? ""), dependentEntityName, StringComparison.Ordinal))
+                    if (string.Equals(EfTypeClassifier.NormalizeTypeName(elem ?? ""), dependentEntityName, StringComparison.Ordinal))
                         yield return (p.Name, true);
                 }
                 else
                 {
-                    var refType = NormalizeTypeName(p.TypeName);
+                    var refType = EfTypeClassifier.NormalizeTypeName(p.TypeName);
                     if (string.Equals(refType, dependentEntityName, StringComparison.Ordinal))
                         yield return (p.Name, false);
                 }
@@ -286,52 +307,43 @@ namespace EFfluentify.Domain.Rules.EntityRules
         {
             var attr = prop.Attributes.FirstOrDefault(a => a.Name is "InverseProperty" or "InversePropertyAttribute");
             if (attr == null) return null;
-            return NormalizeMemberName(attr.PositionalArgs.FirstOrDefault() as string ?? "");
+            return EfTypeClassifier.NormalizeMemberName(attr.PositionalArgs.FirstOrDefault() as string ?? "");
         }
 
-        private static IEnumerable<string> SplitFkNames(string raw)
+        private static string? GetDeleteBehavior(EntityModel entity, ForeignKeyPair pair)
         {
-            // supports "OrderId,LineNo" + nameof(UserId) stored as "UserId"
-            var normalized = NormalizeMemberName(raw);
-            if (string.IsNullOrWhiteSpace(normalized))
-                yield break;
-
-            foreach (var part in normalized.Split(','))
+            // 1. Look on the dependent navigation property
+            var navProp = entity.Properties.FirstOrDefault(p => p.Name == pair.NavName);
+            if (navProp != null)
             {
-                var p = part.Trim();
-                if (!string.IsNullOrWhiteSpace(p))
-                    yield return p;
-            }
-        }
-
-        private static string? NormalizeMemberName(string raw)
-        {
-            var s = raw.Trim();
-
-            // handle nameof(Foo)
-            if (s.StartsWith("nameof(", StringComparison.Ordinal) && s.EndsWith(")", StringComparison.Ordinal))
-            {
-                s = s.Substring("nameof(".Length, s.Length - "nameof(".Length - 1).Trim();
+                var attr = navProp.Attributes.FirstOrDefault(a => a.Name is "DeleteBehavior" or "DeleteBehaviorAttribute");
+                if (attr != null)
+                {
+                    var arg = attr.PositionalArgs.FirstOrDefault() ?? attr.NamedArgs.GetValueOrDefault("behavior"); // Assuming unknown param name? Usually positional.
+                    if (!string.IsNullOrWhiteSpace(arg))
+                    {
+                        return FormatDeleteBehavior(arg);
+                    }
+                }
             }
 
-            // strip quotes if parser kept them
-            s = s.Trim('"');
+            // 2. Look on the FK property? (Less common, but maybe?)
+            // MS Docs say "apply to the relationship". Usually on navigation.
+            // Let's stick to navigation for now as per test case.
 
-            return s;
+            return null;
         }
 
-        private static string NormalizeTypeName(string? typeName)
+        private static string FormatDeleteBehavior(string arg)
         {
-            if (string.IsNullOrWhiteSpace(typeName))
-                return "";
+            // arg comes from Roslyn, likely "DeleteBehavior.Cascade" or "Cascade"
+            // We want to ensure it is "DeleteBehavior.Cascade" for the generated code.
 
-            var t = typeName.Trim().TrimEnd('?');
+            if (arg.Contains("DeleteBehavior."))
+                return arg; // Already fully qualified-ish
 
-            var lastDot = t.LastIndexOf('.');
-            if (lastDot >= 0)
-                t = t[(lastDot + 1)..];
-
-            return t;
+            // If it's just "Cascade", prepend
+            return $"DeleteBehavior.{arg}";
         }
     }
 }

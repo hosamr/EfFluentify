@@ -80,6 +80,45 @@ namespace EFfluentify.Application.Helpers
             return false;
         }
 
+        public static string NormalizeTypeName(string typeName)
+        {
+            var t = typeName.Trim();
+
+            // strip nullable markers like "Customer?" if you keep them in TypeName
+            t = t.TrimEnd('?');
+
+            // strip namespace if TypeName is "MyApp.Models.Customer"
+            var lastDot = t.LastIndexOf('.');
+            if (lastDot >= 0)
+                t = t[(lastDot + 1)..];
+
+            return t;
+        }
+
+        public static IEnumerable<string> SplitFkNames(string raw)
+        {
+            var normalized = NormalizeMemberName(raw);
+            if (string.IsNullOrWhiteSpace(normalized))
+                yield break;
+
+            foreach (var part in normalized.Split(','))
+            {
+                var p = part.Trim();
+                if (!string.IsNullOrWhiteSpace(p))
+                    yield return p;
+            }
+        }
+
+        public static string? NormalizeMemberName(string raw)
+        {
+            var s = raw.Trim();
+
+            if (s.StartsWith("nameof(", StringComparison.Ordinal) && s.EndsWith(")", StringComparison.Ordinal))
+                s = s.Substring("nameof(".Length, s.Length - "nameof(".Length - 1).Trim();
+
+            s = s.Trim('"'); // strip quotes if parser kept them
+            return string.IsNullOrWhiteSpace(s) ? null : s;
+        }
         private static string Normalize(string typeName)
         {
             typeName = typeName.Trim();
@@ -94,7 +133,6 @@ namespace EFfluentify.Application.Helpers
 
             return typeName;
         }
-
         private static bool TryGetGenericArgument(string typeName, out string arg)
         {
             arg = "";
