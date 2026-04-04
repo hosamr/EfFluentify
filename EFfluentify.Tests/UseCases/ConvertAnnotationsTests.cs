@@ -1,5 +1,6 @@
-﻿using EFfluentify.Application.Ports;
+using EFfluentify.Application.Interfaces;
 using EFfluentify.Application.UseCases;
+using EFfluentify.Application.Models;
 using EFfluentify.Infrastructure.CodeGen;
 using EFfluentify.Infrastructure.IO;
 using EFfluentify.Infrastructure.Roslyn;

@@ -1,4 +1,4 @@
-﻿using EFfluentify.Application.Ports;
+using EFfluentify.Application.Interfaces;
 namespace EFfluentify.Infrastructure.IO
 {
     public class FileManager : IFileManager

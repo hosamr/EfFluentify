@@ -1,4 +1,5 @@
-﻿using EFfluentify.Application.Ports;
+using EFfluentify.Application.Interfaces;
+using EFfluentify.Application.Models;
 using EFfluentify.Domain.Rules;
 
 namespace EFfluentify.Application.UseCases

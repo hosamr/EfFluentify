@@ -1,5 +1,5 @@
-﻿using EFfluentify.Application.Helpers;
-using EFfluentify.Application.Ports;
+using EFfluentify.Application.Helpers;
+using EFfluentify.Application.Interfaces;
 using EFfluentify.Application.UseCases;
 using EFfluentify.Domain.Rules;
 using EFfluentify.Infrastructure.CodeGen;
@@ -18,7 +18,6 @@ namespace EFfluentify.Cli
 
             services.AddSingleton<IFileManager, FileManager>();
             services.AddSingleton<IConsoleManager, ConsoleManager>();
-
             services.AddTransient<IEntityModelBuilder, RoslynEntityModelBuilder>();
             services.AddSingleton<ICodeGenerator, CSharpConfigEmitter>();
             services.AddTransient<IAnnotationRemover, AnnotationRemover>();

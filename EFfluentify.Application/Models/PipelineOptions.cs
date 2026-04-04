@@ -1,4 +1,4 @@
-﻿namespace EFfluentify.Application.Ports
+namespace EFfluentify.Application.Models
 {
     public sealed class PipelineOptions
     {

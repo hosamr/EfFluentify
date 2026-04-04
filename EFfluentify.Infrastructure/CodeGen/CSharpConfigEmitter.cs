@@ -1,8 +1,9 @@
-﻿using System.Text;
+using System.Text;
 using EFfluentify.Application.Helpers;
-using EFfluentify.Application.Ports;
+using EFfluentify.Application.Interfaces;
 using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules;
+using EFfluentify.Application.Models;
 
 namespace EFfluentify.Infrastructure.CodeGen
 {

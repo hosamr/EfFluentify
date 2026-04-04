@@ -1,5 +1,5 @@
-﻿using EFfluentify.Application.Models;
-using EFfluentify.Application.Ports;
+using EFfluentify.Application.Models;
+using EFfluentify.Application.Interfaces;
 using EFfluentify.Domain.Rules;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;

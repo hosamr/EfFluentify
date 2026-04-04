@@ -1,4 +1,4 @@
-﻿using EFfluentify.Application.Ports;
+using EFfluentify.Application.Interfaces;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
@@ -7,7 +7,7 @@ namespace EFfluentify.Application.Helpers
 {
     public class ArgsParser : IArgsParser
     {
-        public (List<string> inputs, string? output, bool manyFiles, bool remove) ParseOrThrow(string[] args)
+        public (List<string> inputs, string? output, bool manyFiles, bool remove, string rootNamespace) ParseOrThrow(string[] args)
         {
             var inputOpt = new Option<List<string>>(name: "--input", description: "One or more input paths")
             {
@@ -18,9 +18,10 @@ namespace EFfluentify.Application.Helpers
             var outputOpt = new Option<string>("--out") { IsRequired = true };
             var manyFilesOpt = new Option<bool>("--manyFiles");
             var removeOpt = new Option<bool>("--removeAnnotationsFromMyOriginal");
+            var namespaceOpt = new Option<string>(new[] { "--namespace", "-n" }, () => "EFfluentify.Configurations", "The root namespace for generated files");
 
 
-            var root = new RootCommand { inputOpt, outputOpt, manyFilesOpt, removeOpt };
+            var root = new RootCommand { inputOpt, outputOpt, manyFilesOpt, removeOpt, namespaceOpt };
             var parser = new Parser(root);
 
             var result = parser.Parse(args);
@@ -29,11 +30,12 @@ namespace EFfluentify.Application.Helpers
             string output = result.GetValueForOption(outputOpt)!;
             bool manyFiles = result.GetValueForOption(manyFilesOpt);
             bool remove = result.GetValueForOption(removeOpt);
+            string rootNs = result.GetValueForOption(namespaceOpt) ?? "EntityConfigurations";
             
             if (result.UnmatchedTokens.Count > 0)
                 throw new ArgumentException($"Unrecognized arguments: {string.Join(" ", result.UnmatchedTokens)}");
 
-            return (inputs,output,manyFiles, remove);
+            return (inputs,output,manyFiles, remove, rootNs);
 
         }
     }

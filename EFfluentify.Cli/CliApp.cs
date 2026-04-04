@@ -1,5 +1,6 @@
-﻿using EFfluentify.Application.Ports;
+using EFfluentify.Application.Interfaces;
 using EFfluentify.Application.UseCases;
+using EFfluentify.Application.Models;
 using EFfluentify.Domain.Rules;
 
 public class CliApp
@@ -33,14 +34,14 @@ public class CliApp
                 var input = _console.ReadLine();
                 args = input!.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             }
-            var (inputs, output, manyFiles, remove) = _argsParser.ParseOrThrow(args);
+            var (inputs, output, manyFiles, remove, rootNamespace) = _argsParser.ParseOrThrow(args);
 
             var options = new PipelineOptions
             {
                 OutputDirectory = output!,
                 ManyFiles = manyFiles,
                 RemoveAnnotationsFromOriginal = remove,
-                RootNamespace = "EFfluentify.Configurations"
+                RootNamespace = rootNamespace
             };
 
             var results = await _useCase.Run(inputs, options);
@@ -54,7 +55,7 @@ public class CliApp
                 }
                 return 0;
             }
-            await _fileSystemService.writeFilesToDiskAsync(results, output);
+            await _fileSystemService.writeFilesToDiskAsync(results, options.OutputDirectory);
 
             if (options.RemoveAnnotationsFromOriginal)
             {
