@@ -10,7 +10,7 @@ namespace EFfluentify.Infrastructure.Roslyn
         private readonly IFileManager _fileSystemService;
         public RoslynEntityModelBuilder(IFileManager fileSystemService)
         {
-            _fileSystemService = fileSystemService;
+            _fileSystemService = fileSystemService ?? throw new ArgumentNullException(nameof(fileSystemService));
         }
         public async Task<List<EntityModel>> BuildFromInputs(IEnumerable<string> inputs)
         {

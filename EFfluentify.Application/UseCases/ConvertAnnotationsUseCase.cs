@@ -12,8 +12,8 @@ namespace EFfluentify.Application.UseCases
             IEntityModelBuilder builder,
             ICodeGenerator generator)
         {
-            _builder = builder;
-            _generator = generator;
+            _builder = builder ?? throw new ArgumentNullException(nameof(builder));
+            _generator = generator ?? throw new ArgumentNullException(nameof(generator));
         }
 
         public async Task<Dictionary<string, string>> Run(IEnumerable<string> inputs, PipelineOptions options)

@@ -17,11 +17,11 @@ public class CliApp
         IFileManager fileSystemService,
         IAnnotationRemover annotationRemover)
     {
-        _useCase = useCase;
-        _console = console;
-        _argsParser = argsParser;
-        _fileSystemService = fileSystemService;
-        _annotationRemover = annotationRemover;
+        _useCase = useCase ?? throw new ArgumentNullException(nameof(useCase));
+        _console = console ?? throw new ArgumentNullException(nameof(console));
+        _argsParser = argsParser ?? throw new ArgumentNullException(nameof(argsParser));
+        _fileSystemService = fileSystemService ?? throw new ArgumentNullException(nameof(fileSystemService));
+        _annotationRemover = annotationRemover ?? throw new ArgumentNullException(nameof(annotationRemover));
     }
 
     public async Task<int> RunAsync(string[] args)

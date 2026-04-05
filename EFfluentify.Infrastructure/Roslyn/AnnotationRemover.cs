@@ -1,10 +1,11 @@
-using EFfluentify.Application.Models;
 using EFfluentify.Application.Interfaces;
+using EFfluentify.Application.Models;
 using EFfluentify.Domain.Rules;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Data;
+using System.Text;
 
 namespace EFfluentify.Infrastructure.Roslyn
 {
@@ -14,7 +15,7 @@ namespace EFfluentify.Infrastructure.Roslyn
 
         public AnnotationRemover(IFileManager fileSystemService)
         {
-            _fileSystemService = fileSystemService;
+            _fileSystemService = fileSystemService ?? throw new ArgumentNullException(nameof(fileSystemService));
         }
 
         public async Task<IReadOnlyList<AnnotationRemovalChange>> PrepareRemovalAsync(IEnumerable<string> inputs)
