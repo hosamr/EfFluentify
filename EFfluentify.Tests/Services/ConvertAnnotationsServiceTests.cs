@@ -1,5 +1,5 @@
 using EFfluentify.Application.Interfaces;
-using EFfluentify.Application.UseCases;
+using EFfluentify.Application.Services;
 using EFfluentify.Application.Models;
 using EFfluentify.Infrastructure.CodeGen;
 using EFfluentify.Infrastructure.IO;
@@ -7,14 +7,14 @@ using EFfluentify.Infrastructure.Roslyn;
 using EFfluentify.Tests.Helpers;
 using Xunit;
 
-namespace EFfluentify.Tests.UseCases
+namespace EFfluentify.Tests.Services
 {
 
     [CollectionDefinition("Sequential Tests", DisableParallelization = true)]
     public class SequentialTestCollection { }
 
     [Collection("Sequential Tests")]
-    public class ConvertAnnotationsTests
+    public class ConvertAnnotationsServiceTests
     {
         private const string TestCase1 = "TestCase1";
         private const string TestFkCases = "TestFkCases";
@@ -69,7 +69,7 @@ namespace EFfluentify.Tests.UseCases
             IFileManager fileManager = new FileManager();
             var builder = new RoslynEntityModelBuilder(fileManager);
             var generator = new CSharpConfigEmitter();
-            var useCase = new ConvertAnnotationsUseCase(builder, generator);
+            var useCase = new ConvertAnnotationsService(builder, generator);
 
             var options = new PipelineOptions
             {
@@ -119,7 +119,7 @@ namespace EFfluentify.Tests.UseCases
             IFileManager fileManager = new FileManager();
             var builder = new RoslynEntityModelBuilder(fileManager);
             var generator = new CSharpConfigEmitter();
-            var useCase = new ConvertAnnotationsUseCase(builder, generator);
+            var useCase = new ConvertAnnotationsService(builder, generator);
 
             var options = new PipelineOptions
             {
@@ -193,12 +193,12 @@ namespace EFfluentify.Tests.UseCases
             }
         }
 
-        private static ConvertAnnotationsUseCase CreateUseCase(IFileManager fileManager)
+        private static ConvertAnnotationsService CreateUseCase(IFileManager fileManager)
         {
             var builder = new RoslynEntityModelBuilder(fileManager);
             var generator = new CSharpConfigEmitter();
 
-            return new ConvertAnnotationsUseCase(builder, generator);
+            return new ConvertAnnotationsService(builder, generator);
         }
 
         private static async Task AssertManyFilesMatchAsync(string expectedDir, string actualDir)

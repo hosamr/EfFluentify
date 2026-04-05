@@ -1,15 +1,15 @@
 using EFfluentify.Application.Interfaces;
-using EFfluentify.Application.UseCases;
+using EFfluentify.Application.Services;
 using EFfluentify.Application.Models;
 public class CliApp
 {
-    private readonly ConvertAnnotationsUseCase _useCase;
+    private readonly ConvertAnnotationsService _useCase;
     private readonly IConsoleManager _console;
     private readonly IArgsParser _argsParser;
     private readonly IFileManager _fileSystemService;
     private readonly IAnnotationRemover _annotationRemover;
     public CliApp(
-        ConvertAnnotationsUseCase useCase,
+        ConvertAnnotationsService useCase,
         IConsoleManager console,
         IArgsParser argsParser,
         IFileManager fileSystemService,

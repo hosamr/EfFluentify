@@ -2,13 +2,13 @@ using EFfluentify.Application.Interfaces;
 using EFfluentify.Application.Models;
 using EFfluentify.Domain.Rules;
 
-namespace EFfluentify.Application.UseCases
+namespace EFfluentify.Application.Services
 {
-    public sealed class ConvertAnnotationsUseCase
+    public sealed class ConvertAnnotationsService
     {
         private readonly IEntityModelBuilder _builder;
         private readonly ICodeGenerator _generator;
-        public ConvertAnnotationsUseCase(
+        public ConvertAnnotationsService(
             IEntityModelBuilder builder,
             ICodeGenerator generator)
         {

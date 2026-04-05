@@ -1,6 +1,6 @@
 using EFfluentify.Application.Helpers;
 using EFfluentify.Application.Interfaces;
-using EFfluentify.Application.UseCases;
+using EFfluentify.Application.Services;
 using EFfluentify.Domain.Rules;
 using EFfluentify.Infrastructure.CodeGen;
 using EFfluentify.Infrastructure.IO;
@@ -24,7 +24,7 @@ namespace EFfluentify.Cli
             services.AddTransient<IArgsParser, ArgsParser>();
             services.AddSingleton<CliApp>(); 
 
-            services.AddTransient<ConvertAnnotationsUseCase>();
+            services.AddTransient<ConvertAnnotationsService>();
 
             return services;
         }
