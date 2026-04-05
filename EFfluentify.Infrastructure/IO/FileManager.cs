@@ -11,7 +11,7 @@ namespace EFfluentify.Infrastructure.IO
             return  await File.ReadAllTextAsync(path);
         }
 
-        public async Task writeFilesToDiskAsync(Dictionary<string, string> results, string OutputDirectory)
+        public async Task WriteFilesToDiskAsync(Dictionary<string, string> results, string OutputDirectory)
         {
             EnsureDirectory(OutputDirectory);
 

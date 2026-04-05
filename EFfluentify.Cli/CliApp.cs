@@ -1,8 +1,6 @@
 using EFfluentify.Application.Interfaces;
 using EFfluentify.Application.UseCases;
 using EFfluentify.Application.Models;
-using EFfluentify.Domain.Rules;
-
 public class CliApp
 {
     private readonly ConvertAnnotationsUseCase _useCase;
@@ -28,13 +26,8 @@ public class CliApp
     {
         try
         {
-            if (args.Length == 0)
-            {
-                _console.WriteLine("Enter command: ");
-                var input = _console.ReadLine();
-                args = input!.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            }
-            var (inputs, output, manyFiles, remove, rootNamespace) = _argsParser.ParseOrThrow(args);
+            var commandArgs = GetOrPromptForArgs(args);
+            var (inputs, output, manyFiles, remove, rootNamespace) = _argsParser.ParseOrThrow(commandArgs);
 
             var options = new PipelineOptions
             {
@@ -45,39 +38,56 @@ public class CliApp
             };
 
             var results = await _useCase.Run(inputs, options);
-            if(output == null)
-            {
-                foreach (var kv in results)
-                {
-                    Console.WriteLine($"// File: {kv.Key}");
-                    Console.WriteLine(kv.Value);
-                    Console.WriteLine();
-                }
-                return 0;
-            }
-            await _fileSystemService.writeFilesToDiskAsync(results, options.OutputDirectory);
+            await HandleOutputAsync(results, output, options.OutputDirectory);
 
             if (options.RemoveAnnotationsFromOriginal)
             {
-                var registry = RuleRegistry.Default();
-                var changes = await _annotationRemover.PrepareRemovalAsync(inputs);
-                foreach (var change in changes)
-                {
-                    var bak = change.FilePath + ".bak";
-                    await _fileSystemService.WriteFileAsync(bak, change.OriginalContent);
-
-                    await _fileSystemService.WriteFileAsync(change.FilePath, change.UpdatedContent);
-                }
+                await RemoveAnnotationsAsync(inputs);
             }
 
             return 0;
         }
         catch (Exception ex)
         {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.Error.WriteLine(ex.ToString());
-            Console.ResetColor();
+            _console.WriteError(ex.ToString());
             return 1;
+        }
+    }
+
+    private string[] GetOrPromptForArgs(string[] args)
+    {
+        if (args.Length > 0) 
+            return args;
+
+        _console.WriteLine("Enter command: ");
+        var input = _console.ReadLine();
+        return input?.Split(' ', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+    }
+
+    private async Task HandleOutputAsync(Dictionary<string, string> results, string? output, string outputDirectory)
+    {
+        if (output == null)
+        {
+            foreach (var kv in results)
+            {
+                _console.WriteLine($"// File: {kv.Key}");
+                _console.WriteLine(kv.Value);
+            }
+        }
+        else
+        {
+            await _fileSystemService.WriteFilesToDiskAsync(results, outputDirectory);
+        }
+    }
+
+    private async Task RemoveAnnotationsAsync(IEnumerable<string> inputs)
+    {
+        var changes = await _annotationRemover.PrepareRemovalAsync(inputs);
+        foreach (var change in changes)
+        {
+            var bak = change.FilePath + ".bak";
+            await _fileSystemService.WriteFileAsync(bak, change.OriginalContent);
+            await _fileSystemService.WriteFileAsync(change.FilePath, change.UpdatedContent);
         }
     }
 }

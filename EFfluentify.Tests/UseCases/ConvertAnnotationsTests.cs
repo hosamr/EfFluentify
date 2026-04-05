@@ -83,7 +83,7 @@ namespace EFfluentify.Tests.UseCases
             await Assert.ThrowsAsync<DirectoryNotFoundException>(async () =>
             {
                 var results = await useCase.Run(inputs, options);
-                await fileManager.writeFilesToDiskAsync(results, options.OutputDirectory);
+                await fileManager.WriteFilesToDiskAsync(results, options.OutputDirectory);
             });
         }
 
@@ -106,7 +106,7 @@ namespace EFfluentify.Tests.UseCases
             IEnumerable<string> inputs = new[] { inputDir };
 
             var results = await useCase.Run(inputs, options);
-            await fileManager.writeFilesToDiskAsync(results, options.OutputDirectory);
+            await fileManager.WriteFilesToDiskAsync(results, options.OutputDirectory);
         }
         [Fact]
         public async Task TestCase1_When_InputDirectory_IsInvalid_Should_DoNothing()
@@ -157,7 +157,7 @@ namespace EFfluentify.Tests.UseCases
                 IEnumerable<string> inputs = new[] { inputDir };
 
                 var results = await useCase.Run(inputs, pipelineOptions);
-                await fileManager.writeFilesToDiskAsync(results, outputDir);
+                await fileManager.WriteFilesToDiskAsync(results, outputDir);
 
                 if (pipelineOptions.RemoveAnnotationsFromOriginal)
                 {
