@@ -1,4 +1,4 @@
-﻿using EFfluentify.Domain.Models;
+using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules.EntityRules;
 using EFfluentify.Domain.Rules.Helpers;
 using EFfluentify.Domain.Rules.Interfaces;
@@ -6,17 +6,24 @@ using EFfluentify.Domain.Rules.PropertyRules;
 
 namespace EFfluentify.Domain.Rules
 {
-    public sealed class RuleRegistry
+    public sealed class RuleRegistry : IRuleRegistry
     {
-        private readonly List<IPropertyFluentRule> _propertyRules = new();
-        private readonly List<IEntityFluentRule> _entityRules = new();
+        private readonly List<IPropertyFluentRule> _propertyRules;
+        private readonly List<IEntityFluentRule> _entityRules;
+
+        public RuleRegistry(IEnumerable<IPropertyFluentRule> propertyRules, IEnumerable<IEntityFluentRule> entityRules)
+        {
+            _propertyRules = propertyRules?.ToList() ?? new List<IPropertyFluentRule>();
+            _entityRules = entityRules?.ToList() ?? new List<IEntityFluentRule>();
+        }
 
         public IEnumerable<string> GetCallsForProperty(Property property)
         {
-            if (property.IsNullable)
-                property.Attributes.Add(new AttributeEntry { Name = "Nullable" });
+            var attributes = property.Attributes.ToList();
+            if (property.IsNullable && !attributes.Any(a => a.Name == "Nullable"))
+                attributes.Add(new AttributeEntry { Name = "Nullable" });
 
-            foreach (var attr in property.Attributes)
+            foreach (var attr in attributes)
             {
                 foreach (var rule in _propertyRules)
                 {
@@ -50,36 +57,5 @@ namespace EFfluentify.Domain.Rules
             }
         }
 
-        public static RuleRegistry Default(IReadOnlyCollection<EntityModel> allEntities = default!)
-        {
-            var ctx = new ModelContext(allEntities);
-            var registry = new RuleRegistry();
-
-            registry._propertyRules.AddRange(new IPropertyFluentRule[]
-            {
-                new RequiredToIsRequiredRule(),
-                new MaxLengthToHasMaxLengthRule(),
-                new MinLengthToHasMinLengthRule(),
-                new ColumnToHasColumnRule(),
-                new DatabaseGeneratedToValueGeneratedRule(),
-                new ConcurrencyCheckToIsConcurrencyTokenRule(),
-                new TimestampToRowVersionRule(),
-                new PrecisionFluentRule(),
-                new UnicodeFluentRule(),
-                new NullablePropertyFluentRule()
-            });
-            registry._entityRules.AddRange(new IEntityFluentRule[]
-            {
-                new TableAttributeToToTableRule(),
-                new KeylessAttributeToHasNoKeyRule(),
-                new CommentAttributeToHasCommentRule(),
-                new IndexAttributeToHasIndexRule(),
-                new KeyAttributeToHasKeyRule(),
-                new NotMappedEntityFluentRule(),
-                new ForeignKeyFluentRule(ctx)
-            });
-
-            return registry;
-        }
     }
 }

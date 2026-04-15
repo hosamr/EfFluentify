@@ -3,20 +3,21 @@ using EFfluentify.Application.Helpers;
 using EFfluentify.Application.Interfaces;
 using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules;
+using EFfluentify.Domain.Rules.Interfaces;
 using EFfluentify.Application.Models;
 
 namespace EFfluentify.Infrastructure.CodeGen
 {
     public sealed class CSharpConfigEmitter : ICodeGenerator
     {
-        private RuleRegistry _rules;
+        private IRuleRegistry _rules;
         private IReadOnlyList<EntityModel> _entities = [];
         public CSharpConfigEmitter()
         {
             _entities = [];
             _rules = default!;
         }
-        public Dictionary<string, string> Generate(IEnumerable<EntityModel> entities, PipelineOptions options, RuleRegistry rules)
+        public Dictionary<string, string> Generate(IEnumerable<EntityModel> entities, PipelineOptions options, IRuleRegistry rules)
         {
             _rules = rules ?? throw new ArgumentNullException(nameof(rules));
             _entities = entities?.ToList() ?? throw new ArgumentNullException(nameof(entities));

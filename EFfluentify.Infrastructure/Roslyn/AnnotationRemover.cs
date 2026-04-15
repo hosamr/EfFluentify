@@ -1,6 +1,7 @@
 using EFfluentify.Application.Interfaces;
 using EFfluentify.Application.Models;
 using EFfluentify.Domain.Rules;
+using EFfluentify.Domain.Rules.Interfaces;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -11,16 +12,18 @@ namespace EFfluentify.Infrastructure.Roslyn
 {
     public class AnnotationRemover : IAnnotationRemover
     {
-        private IFileManager _fileSystemService;
+        private readonly IFileManager _fileSystemService;
+        private readonly IRuleRegistryFactory _ruleRegistryFactory;
 
-        public AnnotationRemover(IFileManager fileSystemService)
+        public AnnotationRemover(IFileManager fileSystemService, IRuleRegistryFactory ruleRegistryFactory)
         {
             _fileSystemService = fileSystemService ?? throw new ArgumentNullException(nameof(fileSystemService));
+            _ruleRegistryFactory = ruleRegistryFactory ?? throw new ArgumentNullException(nameof(ruleRegistryFactory));
         }
 
         public async Task<IReadOnlyList<AnnotationRemovalChange>> PrepareRemovalAsync(IEnumerable<string> inputs)
         {
-            var rules = RuleRegistry.Default();
+            var rules = _ruleRegistryFactory.Create();
             var files = _fileSystemService.ExpandFiles(inputs)
                          .Where(f => f.EndsWith(".cs", StringComparison.OrdinalIgnoreCase));
 

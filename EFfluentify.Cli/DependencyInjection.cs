@@ -2,6 +2,7 @@ using EFfluentify.Application.Helpers;
 using EFfluentify.Application.Interfaces;
 using EFfluentify.Application.Services;
 using EFfluentify.Domain.Rules;
+using EFfluentify.Domain.Rules.Interfaces;
 using EFfluentify.Infrastructure.CodeGen;
 using EFfluentify.Infrastructure.IO;
 using EFfluentify.Infrastructure.Roslyn;
@@ -23,6 +24,7 @@ namespace EFfluentify.Cli
             services.AddTransient<IAnnotationRemover, AnnotationRemover>();
             services.AddTransient<IArgsParser, ArgsParser>();
             services.AddSingleton<CliApp>(); 
+            services.AddSingleton<IRuleRegistryFactory, RuleRegistryFactory>();
 
             services.AddTransient<IConvertAnnotationsService, ConvertAnnotationsService>();
 

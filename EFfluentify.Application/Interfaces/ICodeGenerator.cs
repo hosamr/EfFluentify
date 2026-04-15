@@ -1,5 +1,6 @@
 using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules;
+using EFfluentify.Domain.Rules.Interfaces;
 using EFfluentify.Application.Models;
 using System;
 using System.Collections.Generic;
@@ -11,7 +12,7 @@ namespace EFfluentify.Application.Interfaces
 {
     public interface ICodeGenerator
     {
-        Dictionary<string, string> Generate(IEnumerable<EntityModel> entities, PipelineOptions options, RuleRegistry rules);
+        Dictionary<string, string> Generate(IEnumerable<EntityModel> entities, PipelineOptions options, IRuleRegistry rules);
     }
 
 }

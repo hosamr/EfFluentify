@@ -4,6 +4,7 @@ using EFfluentify.Application.Models;
 using EFfluentify.Infrastructure.CodeGen;
 using EFfluentify.Infrastructure.IO;
 using EFfluentify.Infrastructure.Roslyn;
+using EFfluentify.Domain.Rules;
 using EFfluentify.Tests.Helpers;
 using Xunit;
 
@@ -69,7 +70,7 @@ namespace EFfluentify.Tests.Services
             IFileManager fileManager = new FileManager();
             var builder = new RoslynEntityModelBuilder(fileManager);
             var generator = new CSharpConfigEmitter();
-            var useCase = new ConvertAnnotationsService(builder, generator);
+            var useCase = new ConvertAnnotationsService(builder, generator, new RuleRegistryFactory());
 
             var options = new PipelineOptions
             {
@@ -119,7 +120,7 @@ namespace EFfluentify.Tests.Services
             IFileManager fileManager = new FileManager();
             var builder = new RoslynEntityModelBuilder(fileManager);
             var generator = new CSharpConfigEmitter();
-            var useCase = new ConvertAnnotationsService(builder, generator);
+            var useCase = new ConvertAnnotationsService(builder, generator, new RuleRegistryFactory());
 
             var options = new PipelineOptions
             {
@@ -198,7 +199,7 @@ namespace EFfluentify.Tests.Services
             var builder = new RoslynEntityModelBuilder(fileManager);
             var generator = new CSharpConfigEmitter();
 
-            return new ConvertAnnotationsService(builder, generator);
+            return new ConvertAnnotationsService(builder, generator, new RuleRegistryFactory());
         }
 
         private static async Task AssertManyFilesMatchAsync(string expectedDir, string actualDir)
@@ -256,7 +257,7 @@ namespace EFfluentify.Tests.Services
 
         private async Task ApplyAnnotationRemovalAsync(IFileManager fileManager, IEnumerable<string> inputs)
         {
-            var annotationRemover = new AnnotationRemover(fileManager);
+            var annotationRemover = new AnnotationRemover(fileManager, new RuleRegistryFactory());
             var changes = await annotationRemover.PrepareRemovalAsync(inputs);
 
             foreach (var change in changes)
