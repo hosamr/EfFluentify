@@ -9,8 +9,8 @@ namespace EFfluentify.Domain.Rules.Interfaces
 {
     public interface IPropertyFluentRule
     {
-        bool CanApply(AttributeModel attribute, PropertyModel property);
-        string? GetFluentCall(AttributeModel attribute, PropertyModel property);
+        bool CanApply(AttributeEntry attribute, Property property);
+        string? GetFluentCall(AttributeEntry attribute, Property property);
         public IEnumerable<string> GetAnnotationPropertyNames();
 
     }

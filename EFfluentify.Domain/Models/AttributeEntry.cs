@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EFfluentify.Domain.Models
 {
-    public sealed class AttributeModel
+    public sealed class AttributeEntry
     {
         public string Name { get; set; } = "";
         public List<string> PositionalArgs { get; set; } = new();

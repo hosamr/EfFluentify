@@ -47,7 +47,7 @@ namespace EFfluentify.Domain.Rules.EntityRules
             yield return "IndexAttribute";
         }
 
-        private static IReadOnlyList<string> ExtractPropertyNames(AttributeModel indexAttr)
+        private static IReadOnlyList<string> ExtractPropertyNames(AttributeEntry indexAttr)
         {
             var results = new List<string>();
 

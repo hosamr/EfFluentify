@@ -10,12 +10,12 @@ namespace EFfluentify.Domain.Rules.PropertyRules
 {
     public sealed class NullablePropertyFluentRule : IPropertyFluentRule
     {
-        public bool CanApply(AttributeModel attribute, PropertyModel property)
+        public bool CanApply(AttributeEntry attribute, Property property)
             => attribute.Name is "Nullable"
                && property.IsNullable
                && !LooksLikeForeignKey(property);
 
-        public string? GetFluentCall(AttributeModel attribute, PropertyModel property)
+        public string? GetFluentCall(AttributeEntry attribute, Property property)
             => ".IsRequired(false)";
 
         public IEnumerable<string> GetAnnotationPropertyNames()
@@ -23,7 +23,7 @@ namespace EFfluentify.Domain.Rules.PropertyRules
             yield return "Nullable";
         }
 
-        private static bool LooksLikeForeignKey(PropertyModel p)
+        private static bool LooksLikeForeignKey(Property p)
             => p.Name.EndsWith("Id", StringComparison.Ordinal);
     }
 

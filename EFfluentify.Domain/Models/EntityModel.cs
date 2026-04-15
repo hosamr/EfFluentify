@@ -4,8 +4,8 @@
     {
         public string Namespace { get; set; } = "";
         public string Name { get; set; } = "";
-        public List<AttributeModel> Attributes { get; set; } = new();
-        public List<PropertyModel> Properties { get; set; } = new();
+        public List<AttributeEntry> Attributes { get; set; } = new();
+        public List<Property> Properties { get; set; } = new();
         public string SourcePath { get; set; } = "";
     }
 

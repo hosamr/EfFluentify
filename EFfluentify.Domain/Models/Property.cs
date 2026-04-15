@@ -1,11 +1,11 @@
 ﻿namespace EFfluentify.Domain.Models
 {
-    public sealed class PropertyModel
+    public sealed class Property
     {
         public string Name { get; set; } = "";
         public string TypeName { get; set; } = "";
         public bool IsNullable { get; set; }
-        public List<AttributeModel> Attributes { get; set; } = new();
+        public List<AttributeEntry> Attributes { get; set; } = new();
     }
 
 }

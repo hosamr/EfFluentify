@@ -34,7 +34,7 @@ namespace EFfluentify.Domain.Rules.EntityRules
             yield return "KeyAttribute";
         }
 
-        private static bool IsKeyAttribute(AttributeModel a)
+        private static bool IsKeyAttribute(AttributeEntry a)
             => a.Name is "Key" or "KeyAttribute";
     }
 

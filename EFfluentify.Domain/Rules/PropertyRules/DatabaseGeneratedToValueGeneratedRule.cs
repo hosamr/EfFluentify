@@ -5,10 +5,10 @@ namespace EFfluentify.Domain.Rules.PropertyRules
 {
     public sealed class DatabaseGeneratedToValueGeneratedRule : IPropertyFluentRule
     {
-        public bool CanApply(AttributeModel attribute, PropertyModel property)
+        public bool CanApply(AttributeEntry attribute, Property property)
             => attribute.Name is "DatabaseGenerated";
 
-        public string? GetFluentCall(AttributeModel attribute, PropertyModel property)
+        public string? GetFluentCall(AttributeEntry attribute, Property property)
         {
             if (attribute.PositionalArgs is not { Count: > 0 } ctorArgs)
                 return null;

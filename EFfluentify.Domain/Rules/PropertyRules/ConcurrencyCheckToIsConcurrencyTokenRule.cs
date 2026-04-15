@@ -10,10 +10,10 @@ namespace EFfluentify.Domain.Rules.PropertyRules
 {
     public sealed class ConcurrencyCheckToIsConcurrencyTokenRule : IPropertyFluentRule
     {
-        public bool CanApply(AttributeModel attribute, PropertyModel property)
+        public bool CanApply(AttributeEntry attribute, Property property)
             => attribute.Name is "ConcurrencyCheck";
 
-        public string? GetFluentCall(AttributeModel attribute, PropertyModel property)
+        public string? GetFluentCall(AttributeEntry attribute, Property property)
             => ".IsConcurrencyToken()";
         public IEnumerable<string> GetAnnotationPropertyNames()
         {

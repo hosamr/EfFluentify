@@ -5,9 +5,9 @@ namespace EFfluentify.Domain.Rules.PropertyRules
 {
     public class PrecisionFluentRule : IPropertyFluentRule
     {
-        public bool CanApply(AttributeModel attribute, PropertyModel property)
+        public bool CanApply(AttributeEntry attribute, Property property)
             => attribute.Name is "Precision" or "PrecisionAttribute";
-        public string? GetFluentCall(AttributeModel attribute, PropertyModel property)
+        public string? GetFluentCall(AttributeEntry attribute, Property property)
         {
             var precision = attribute.PositionalArgs.ElementAtOrDefault(0);
             var scale = attribute.PositionalArgs.ElementAtOrDefault(1);

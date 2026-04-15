@@ -44,7 +44,7 @@ namespace EFfluentify.Application.Helpers
 
             return ScalarTypeNames.Contains(t, StringComparer.Ordinal);
         }
-        public static bool IsNavigationProperty(PropertyModel p, IEnumerable<EntityModel> entities)
+        public static bool IsNavigationProperty(Property p, IEnumerable<EntityModel> entities)
         {
             if (p == null) throw new ArgumentNullException(nameof(p));
             if (entities == null) throw new ArgumentNullException(nameof(entities));
@@ -163,7 +163,7 @@ namespace EFfluentify.Application.Helpers
             return outer;
         }
 
-        private static string GetTypeName(PropertyModel p)
+        private static string GetTypeName(Property p)
         {
             return p.TypeName;
         }

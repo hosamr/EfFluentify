@@ -5,10 +5,10 @@ namespace EFfluentify.Domain.Rules.PropertyRules
 {
     public sealed class ColumnToHasColumnRule : IPropertyFluentRule
     {
-        public bool CanApply(AttributeModel attribute, PropertyModel property)
+        public bool CanApply(AttributeEntry attribute, Property property)
             => attribute.Name is "Column";
 
-        public string? GetFluentCall(AttributeModel attribute, PropertyModel property)
+        public string? GetFluentCall(AttributeEntry attribute, Property property)
         {
             var parts = new List<string>();
 

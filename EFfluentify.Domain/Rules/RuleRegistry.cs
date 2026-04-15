@@ -11,18 +11,10 @@ namespace EFfluentify.Domain.Rules
         private readonly List<IPropertyFluentRule> _propertyRules = new();
         private readonly List<IEntityFluentRule> _entityRules = new();
 
-
-        public RuleRegistry Add(IPropertyFluentRule propertyRule, IEntityFluentRule entityRule)
-        {
-            _propertyRules.Add(propertyRule);
-            _entityRules.Add(entityRule);
-            return this;
-        }
-
-        public IEnumerable<string> GetCallsForProperty(PropertyModel property)
+        public IEnumerable<string> GetCallsForProperty(Property property)
         {
             if (property.IsNullable)
-                property.Attributes.Add(new AttributeModel { Name = "Nullable" });
+                property.Attributes.Add(new AttributeEntry { Name = "Nullable" });
 
             foreach (var attr in property.Attributes)
             {

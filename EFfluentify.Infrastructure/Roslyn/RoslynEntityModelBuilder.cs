@@ -1,5 +1,6 @@
 using EFfluentify.Application.Interfaces;
 using EFfluentify.Domain.Models;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -32,91 +33,81 @@ namespace EFfluentify.Infrastructure.Roslyn
         {
             var tree = CSharpSyntaxTree.ParseText(code);
             var root = tree.GetRoot() as CompilationUnitSyntax;
-            if(root == null) yield break;
+            if (root == null) yield break;
 
-            var ns = root.DescendantNodes().OfType<NamespaceDeclarationSyntax>().FirstOrDefault()?.Name.ToString() ?? "";
+            var ns = root.DescendantNodes().OfType<BaseNamespaceDeclarationSyntax>().FirstOrDefault()?.Name.ToString() ?? "";
             var classes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
 
             foreach (var clss in classes)
             {
-                var entity = new EntityModel
+                yield return ParseClass(clss, ns, sourcePath);
+            }
+        }
+
+        private EntityModel ParseClass(ClassDeclarationSyntax clss, string ns, string sourcePath)
+        {
+            var entity = new EntityModel
+            {
+                Namespace = ns,
+                Name = clss.Identifier.Text,
+                SourcePath = sourcePath
+            };
+
+            var properties = clss.DescendantNodes().OfType<PropertyDeclarationSyntax>();
+            foreach (var prop in properties)
+            {
+                entity.Properties.Add(ParseProperty(prop));
+            }
+
+            entity.Attributes.AddRange(ParseAttributes(clss.AttributeLists));
+
+            return entity;
+        }
+
+        private Property ParseProperty(PropertyDeclarationSyntax prop)
+        {
+            var property = new Property
+            {
+                Name = prop.Identifier.Text,
+                TypeName = prop.Type.ToString(),
+                IsNullable = prop.Type.ToString().EndsWith("?")
+            };
+
+            property.Attributes.AddRange(ParseAttributes(prop.AttributeLists));
+
+            return property;
+        }
+
+        private IEnumerable<AttributeEntry> ParseAttributes(SyntaxList<AttributeListSyntax> attributeLists)
+        {
+            foreach (var attrList in attributeLists)
+            {
+                foreach (var attr in attrList.Attributes)
                 {
-                    Namespace = ns,
-                    Name = clss.Identifier.Text,
-                    SourcePath = sourcePath
-                };
-                foreach (var attrList in clss.AttributeLists)
-                {
-                    foreach (var attr in attrList.Attributes)
+                    var attribute = new AttributeEntry
                     {
-                        var attribute = new AttributeModel
-                        {
-                            Name = attr.Name.ToString(),
-                            RawText = attr.ToString()
-                        };
-
-                        var args = attr.ArgumentList;
-                        if (args != null)
-                        {
-                            foreach (var arg in args.Arguments)
-                            {
-                                if (arg.NameEquals != null)
-                                {
-                                    attribute.NamedArgs[arg.NameEquals.Name.ToString()] = arg.Expression.ToString();
-                                }
-                                else
-                                {
-                                    attribute.PositionalArgs.Add(arg.Expression.ToString());
-                                }
-                            }
-                        }
-
-                        entity.Attributes.Add(attribute);
-                    }
-                }
-                var properties = clss.DescendantNodes().OfType<PropertyDeclarationSyntax>();
-
-                foreach (var prop in properties)
-                {
-                    var property = new PropertyModel
-                    {
-                        Name = prop.Identifier.Text,
-                        TypeName = prop.Type.ToString(),
-                        IsNullable = prop.Type.ToString().EndsWith("?")
+                        Name = attr.Name.ToString(),
+                        RawText = attr.ToString()
                     };
 
-                    var attributes = prop.AttributeLists;
-                    foreach (var attrList in attributes)
+                    var args = attr.ArgumentList;
+                    if (args != null)
                     {
-                        foreach (var attr in attrList.Attributes)
+                        foreach (var arg in args.Arguments)
                         {
-                            var args = attr.ArgumentList;
-                            var attribute = new AttributeModel
+                            if (arg.NameEquals != null)
                             {
-                                Name = attr.Name.ToString(),
-                                RawText = attr.ToString()
-                            };
-
-                            if (args != null)
-                            {
-                                foreach (var arg in args.Arguments)
-                                {
-                                    if (arg.NameEquals != null)
-                                    {
-                                        attribute.NamedArgs[arg.NameEquals.Name.ToString()] = arg.Expression.ToString();
-                                    }
-                                    else
-                                    {
-                                        attribute.PositionalArgs.Add(arg.Expression.ToString());
-                                    }
-                                }
+                                attribute.NamedArgs[arg.NameEquals.Name.ToString()] = arg.Expression.ToString();
                             }
-                            property.Attributes.Add(attribute);
+                            else
+                            {
+                                attribute.PositionalArgs.Add(arg.Expression.ToString());
+                            }
                         }
                     }
-                    entity.Properties.Add(property);
+
+                    yield return attribute;
                 }
-                yield return entity;
             }
         }
     }

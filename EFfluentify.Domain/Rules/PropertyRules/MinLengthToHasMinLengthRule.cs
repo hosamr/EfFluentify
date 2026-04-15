@@ -10,10 +10,10 @@ namespace EFfluentify.Domain.Rules.PropertyRules
 {
     public sealed class MinLengthToHasMinLengthRule : IPropertyFluentRule
     {
-        public bool CanApply(AttributeModel attribute, PropertyModel property)
+        public bool CanApply(AttributeEntry attribute, Property property)
             => attribute.Name is "MinLength" or "StringLength";
 
-        public string? GetFluentCall(AttributeModel attribute, PropertyModel property)
+        public string? GetFluentCall(AttributeEntry attribute, Property property)
         {
             var hasPos = attribute.PositionalArgs.FirstOrDefault();
             if (attribute.Name == "MinLength" && !string.IsNullOrWhiteSpace(hasPos))

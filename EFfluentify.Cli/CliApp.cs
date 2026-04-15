@@ -3,19 +3,19 @@ using EFfluentify.Application.Services;
 using EFfluentify.Application.Models;
 public class CliApp
 {
-    private readonly ConvertAnnotationsService _useCase;
+    private readonly IConvertAnnotationsService _convertAnnotationsService;
     private readonly IConsoleManager _console;
     private readonly IArgsParser _argsParser;
     private readonly IFileManager _fileSystemService;
     private readonly IAnnotationRemover _annotationRemover;
     public CliApp(
-        ConvertAnnotationsService useCase,
+        IConvertAnnotationsService convertAnnotationsService,
         IConsoleManager console,
         IArgsParser argsParser,
         IFileManager fileSystemService,
         IAnnotationRemover annotationRemover)
     {
-        _useCase = useCase ?? throw new ArgumentNullException(nameof(useCase));
+        _convertAnnotationsService = convertAnnotationsService ?? throw new ArgumentNullException(nameof(convertAnnotationsService));
         _console = console ?? throw new ArgumentNullException(nameof(console));
         _argsParser = argsParser ?? throw new ArgumentNullException(nameof(argsParser));
         _fileSystemService = fileSystemService ?? throw new ArgumentNullException(nameof(fileSystemService));
@@ -37,7 +37,7 @@ public class CliApp
                 RootNamespace = rootNamespace
             };
 
-            var results = await _useCase.Run(inputs, options);
+            var results = await _convertAnnotationsService.Run(inputs, options);
             await HandleOutputAsync(results, output, options.OutputDirectory);
 
             if (options.RemoveAnnotationsFromOriginal)

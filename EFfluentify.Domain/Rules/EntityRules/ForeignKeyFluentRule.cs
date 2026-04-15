@@ -292,7 +292,7 @@ namespace EFfluentify.Domain.Rules.EntityRules
             return true;
         }
 
-        private static bool IsNavigationProperty(EntityModel entity, PropertyModel prop)
+        private static bool IsNavigationProperty(EntityModel entity, Property prop)
         {
             if (EfTypeClassifier.IsCollectionType(prop.TypeName))
                 return true;
@@ -303,7 +303,7 @@ namespace EFfluentify.Domain.Rules.EntityRules
             return true;
         }
 
-        private static string? GetInversePropertyName(PropertyModel prop)
+        private static string? GetInversePropertyName(Property prop)
         {
             var attr = prop.Attributes.FirstOrDefault(a => a.Name is "InverseProperty" or "InversePropertyAttribute");
             if (attr == null) return null;

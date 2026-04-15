@@ -4,7 +4,7 @@ using EFfluentify.Domain.Rules;
 
 namespace EFfluentify.Application.Services
 {
-    public sealed class ConvertAnnotationsService
+    public sealed class ConvertAnnotationsService : IConvertAnnotationsService
     {
         private readonly IEntityModelBuilder _builder;
         private readonly ICodeGenerator _generator;

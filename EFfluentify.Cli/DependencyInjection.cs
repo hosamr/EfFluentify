@@ -24,7 +24,7 @@ namespace EFfluentify.Cli
             services.AddTransient<IArgsParser, ArgsParser>();
             services.AddSingleton<CliApp>(); 
 
-            services.AddTransient<ConvertAnnotationsService>();
+            services.AddTransient<IConvertAnnotationsService, ConvertAnnotationsService>();
 
             return services;
         }
