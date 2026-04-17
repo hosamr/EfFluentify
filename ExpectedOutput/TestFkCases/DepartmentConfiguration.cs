@@ -8,8 +8,6 @@ internal sealed class DepartmentConfiguration : IEntityTypeConfiguration<Departm
 {
     public void Configure(EntityTypeBuilder<Department> builder)
     {
-        builder.ToTable("Department");
-
         builder.Property(x => x.Id);
     }
 }

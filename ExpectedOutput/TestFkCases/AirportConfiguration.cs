@@ -8,8 +8,6 @@ internal sealed class AirportConfiguration : IEntityTypeConfiguration<Airport>
 {
     public void Configure(EntityTypeBuilder<Airport> builder)
     {
-        builder.ToTable("Airport");
-
         builder.Property(x => x.Id);
     }
 }

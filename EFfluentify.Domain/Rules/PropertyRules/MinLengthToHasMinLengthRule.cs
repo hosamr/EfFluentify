@@ -1,4 +1,4 @@
-﻿using EFfluentify.Domain.Models;
+using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -13,20 +13,18 @@ namespace EFfluentify.Domain.Rules.PropertyRules
         public bool CanApply(AttributeEntry attribute, Property property)
             => attribute.Name is "MinLength" or "StringLength";
 
-        public string? GetFluentCall(AttributeEntry attribute, Property property)
+        public IEnumerable<string> GetFluentLines(AttributeEntry attribute, Property property)
         {
             var hasPos = attribute.PositionalArgs.FirstOrDefault();
             if (attribute.Name == "MinLength" && !string.IsNullOrWhiteSpace(hasPos))
             {
-                return $".HasMinLength({hasPos})";
+                yield return $".HasMinLength({hasPos})";
             }
 
-            if (attribute.NamedArgs.TryGetValue("MinimumLength", out var min))
+            else if (attribute.NamedArgs.TryGetValue("MinimumLength", out var min))
             {
-                return $".HasMinLength({min})";
+                yield return $".HasMinLength({min})";
             }
-
-            return null;
         }
         public IEnumerable<string> GetAnnotationPropertyNames()
         {

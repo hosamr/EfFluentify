@@ -1,4 +1,4 @@
-﻿using EFfluentify.Domain.Models;
+using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules.Interfaces;
 
 
@@ -9,20 +9,18 @@ namespace EFfluentify.Domain.Rules.PropertyRules
         public bool CanApply(AttributeEntry attribute, Property property)
             => attribute.Name is "MaxLength" or "StringLength";
 
-        public string? GetFluentCall(AttributeEntry attribute, Property property)
+        public IEnumerable<string> GetFluentLines(AttributeEntry attribute, Property property)
         {
             var hasPos = attribute.PositionalArgs.FirstOrDefault();
             if (!string.IsNullOrWhiteSpace(hasPos))
             {
-                return $".HasMaxLength({hasPos})";
+                yield return $".HasMaxLength({hasPos})";
             }
 
-            if (attribute.NamedArgs.TryGetValue("MaximumLength", out var max))
+            else if (attribute.NamedArgs.TryGetValue("MaximumLength", out var max))
             {
-                return $".HasMaxLength({max})";
+                yield return $".HasMaxLength({max})";
             }
-
-            return null;
         }
         public IEnumerable<string> GetAnnotationPropertyNames()
         {

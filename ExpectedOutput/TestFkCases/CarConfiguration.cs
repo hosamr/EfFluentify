@@ -8,8 +8,6 @@ internal sealed class CarConfiguration : IEntityTypeConfiguration<Car>
 {
     public void Configure(EntityTypeBuilder<Car> builder)
     {
-        builder.ToTable("Car");
-
         builder.Property(x => x.Id);
     }
 }

@@ -1,4 +1,4 @@
-﻿using EFfluentify.Domain.Models;
+using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -13,8 +13,10 @@ namespace EFfluentify.Domain.Rules.PropertyRules
         public bool CanApply(AttributeEntry attribute, Property property)
             => attribute.Name is "ConcurrencyCheck";
 
-        public string? GetFluentCall(AttributeEntry attribute, Property property)
-            => ".IsConcurrencyToken()";
+        public IEnumerable<string> GetFluentLines(AttributeEntry attribute, Property property)
+        {
+            yield return ".IsConcurrencyToken()";
+        }
         public IEnumerable<string> GetAnnotationPropertyNames()
         {
             yield return "ConcurrencyCheck";

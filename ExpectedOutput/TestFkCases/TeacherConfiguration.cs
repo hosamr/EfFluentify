@@ -8,8 +8,6 @@ internal sealed class TeacherConfiguration : IEntityTypeConfiguration<Teacher>
 {
     public void Configure(EntityTypeBuilder<Teacher> builder)
     {
-        builder.ToTable("Teacher");
-
         builder.Property(x => x.Id);
     }
 }

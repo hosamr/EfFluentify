@@ -1,4 +1,4 @@
-﻿using EFfluentify.Domain.Models;
+using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -13,9 +13,11 @@ namespace EFfluentify.Domain.Rules.PropertyRules
         public bool CanApply(AttributeEntry attribute, Property property)
             => attribute.Name is "Timestamp";
 
-        public string? GetFluentCall(AttributeEntry attribute, Property property)
+        public IEnumerable<string> GetFluentLines(AttributeEntry attribute, Property property)
         {
-            return ".IsRowVersion().IsConcurrencyToken().ValueGeneratedOnAddOrUpdate()";
+            yield return ".IsRowVersion()";
+            yield return ".IsConcurrencyToken()";
+            yield return ".ValueGeneratedOnAddOrUpdate()";
         }
         public IEnumerable<string> GetAnnotationPropertyNames()
         {

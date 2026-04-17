@@ -1,4 +1,4 @@
-﻿using EFfluentify.Domain.Models;
+using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules.Interfaces;
 
 namespace EFfluentify.Domain.Rules.PropertyRules
@@ -8,14 +8,12 @@ namespace EFfluentify.Domain.Rules.PropertyRules
         public bool CanApply(AttributeEntry attribute, Property property)
             => attribute.Name is "Column";
 
-        public string? GetFluentCall(AttributeEntry attribute, Property property)
+        public IEnumerable<string> GetFluentLines(AttributeEntry attribute, Property property)
         {
-            var parts = new List<string>();
-
             if (attribute.PositionalArgs is { Count: > 0 } ctorArgs &&
                 ctorArgs[0] is string name && !string.IsNullOrWhiteSpace(name))
             {
-                parts.Add($".HasColumnName({name})");
+                yield return $".HasColumnName({name})";
             }
 
             if (attribute.NamedArgs != null &&
@@ -23,13 +21,8 @@ namespace EFfluentify.Domain.Rules.PropertyRules
                 typeNameObj is string typeName &&
                 !string.IsNullOrWhiteSpace(typeName))
             {
-                parts.Add($".HasColumnType({typeName})");
+                yield return $".HasColumnType({typeName})";
             }
-
-            if (parts.Count == 0)
-                return null;
-
-            return string.Concat(parts);
         }
         public IEnumerable<string> GetAnnotationPropertyNames()
         {

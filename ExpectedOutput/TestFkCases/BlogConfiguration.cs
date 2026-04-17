@@ -8,8 +8,6 @@ internal sealed class BlogConfiguration : IEntityTypeConfiguration<Blog>
 {
     public void Configure(EntityTypeBuilder<Blog> builder)
     {
-        builder.ToTable("Blog");
-
         builder.Property(x => x.Id);
     }
 }

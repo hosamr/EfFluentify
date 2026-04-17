@@ -8,8 +8,6 @@ internal sealed class ParentConfiguration : IEntityTypeConfiguration<Parent>
 {
     public void Configure(EntityTypeBuilder<Parent> builder)
     {
-        builder.ToTable("Parent");
-
         builder.Property(x => x.Id);
     }
 }

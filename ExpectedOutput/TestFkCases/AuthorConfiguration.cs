@@ -8,8 +8,6 @@ internal sealed class AuthorConfiguration : IEntityTypeConfiguration<Author>
 {
     public void Configure(EntityTypeBuilder<Author> builder)
     {
-        builder.ToTable("Author");
-
         builder.Property(x => x.Id);
     }
 }

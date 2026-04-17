@@ -8,7 +8,6 @@ internal sealed class BlogConfiguration : IEntityTypeConfiguration<Blog>
 {
     public void Configure(EntityTypeBuilder<Blog> builder)
     {
-        builder.ToTable("Blog");
 
         builder.Property(x => x.Id);
     }
@@ -20,6 +19,7 @@ internal sealed class PostConfiguration : IEntityTypeConfiguration<Post>
     {
         builder.HasOne(x => x.Blog).WithMany(x => x.Posts).HasForeignKey(x => x.BlogId).IsRequired();
 
+
         builder.Property(x => x.Id);
     }
 }
@@ -28,7 +28,6 @@ internal sealed class AuthorConfiguration : IEntityTypeConfiguration<Author>
 {
     public void Configure(EntityTypeBuilder<Author> builder)
     {
-        builder.ToTable("Author");
 
         builder.Property(x => x.Id);
     }
@@ -40,6 +39,7 @@ internal sealed class BookConfiguration : IEntityTypeConfiguration<Book>
     {
         builder.HasOne(x => x.AuthorNav).WithMany(x => x.Books).HasForeignKey(x => x.AuthorId).IsRequired();
 
+
         builder.Property(x => x.Id);
     }
 }
@@ -50,6 +50,7 @@ internal sealed class TeamConfiguration : IEntityTypeConfiguration<Team>
     {
         builder.HasKey(e => new { e.TeamId, e.LeagueId });
 
+
     }
 }
 
@@ -58,6 +59,7 @@ internal sealed class PlayerConfiguration : IEntityTypeConfiguration<Player>
     public void Configure(EntityTypeBuilder<Player> builder)
     {
         builder.HasOne(x => x.Team).WithMany(x => x.Players).HasForeignKey(x => new { x.MyTeamId, x.MyLeagueId }).IsRequired();
+
 
         builder.Property(x => x.Id);
     }
@@ -69,6 +71,7 @@ internal sealed class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
     {
         builder.HasOne(x => x.Manager).WithMany(x => x.Subordinates).HasForeignKey(x => x.ManagerId);
 
+
         builder.Property(x => x.Id);
     }
 }
@@ -77,7 +80,6 @@ internal sealed class CarConfiguration : IEntityTypeConfiguration<Car>
 {
     public void Configure(EntityTypeBuilder<Car> builder)
     {
-        builder.ToTable("Car");
 
         builder.Property(x => x.Id);
     }
@@ -89,6 +91,7 @@ internal sealed class EngineConfiguration : IEntityTypeConfiguration<Engine>
     {
         builder.HasOne(x => x.Car).WithOne(x => x.Engine).HasForeignKey<Engine>(x => x.CarId).IsRequired();
 
+
         builder.Property(x => x.Id);
     }
 }
@@ -97,7 +100,6 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
     {
-        builder.ToTable("User");
 
         builder.Property(x => x.Id);
     }
@@ -110,6 +112,7 @@ internal sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserPr
         builder.HasKey(e => e.Id);
         builder.HasOne(x => x.User).WithOne(x => x.Profile).HasForeignKey<UserProfile>(x => x.Id).IsRequired();
 
+
     }
 }
 
@@ -120,6 +123,7 @@ internal sealed class CourseConfiguration : IEntityTypeConfiguration<Course>
         builder.HasOne(x => x.Teacher).WithMany().HasForeignKey(x => x.TeacherId);
         builder.HasOne(x => x.Department).WithMany().HasForeignKey(x => x.DepartmentId).IsRequired();
 
+
         builder.Property(x => x.Id);
     }
 }
@@ -128,7 +132,6 @@ internal sealed class TeacherConfiguration : IEntityTypeConfiguration<Teacher>
 {
     public void Configure(EntityTypeBuilder<Teacher> builder)
     {
-        builder.ToTable("Teacher");
 
         builder.Property(x => x.Id);
     }
@@ -138,7 +141,6 @@ internal sealed class DepartmentConfiguration : IEntityTypeConfiguration<Departm
 {
     public void Configure(EntityTypeBuilder<Department> builder)
     {
-        builder.ToTable("Department");
 
         builder.Property(x => x.Id);
     }
@@ -148,7 +150,6 @@ internal sealed class ParentConfiguration : IEntityTypeConfiguration<Parent>
 {
     public void Configure(EntityTypeBuilder<Parent> builder)
     {
-        builder.ToTable("Parent");
 
         builder.Property(x => x.Id);
     }
@@ -161,6 +162,7 @@ internal sealed class ChildConfiguration : IEntityTypeConfiguration<Child>
         builder.HasOne(x => x.Mother).WithMany(x => x.ChildrenByMother).HasForeignKey(x => x.MotherId).IsRequired().OnDelete(DeleteBehavior.NoAction);
         builder.HasOne(x => x.Father).WithMany(x => x.ChildrenByFather).HasForeignKey(x => x.FatherId).IsRequired().OnDelete(DeleteBehavior.NoAction);
 
+
         builder.Property(x => x.Id);
     }
 }
@@ -172,6 +174,7 @@ internal sealed class FlightConfiguration : IEntityTypeConfiguration<Flight>
         builder.HasOne(x => x.DepartureAirport).WithMany(x => x.DepartingFlights).HasForeignKey(x => x.DepartureAirportId).IsRequired().OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(x => x.ArrivalAirport).WithMany(x => x.ArrivingFlights).HasForeignKey(x => x.ArrivalAirportId).IsRequired();
 
+
         builder.Property(x => x.Id);
     }
 }
@@ -180,7 +183,6 @@ internal sealed class AirportConfiguration : IEntityTypeConfiguration<Airport>
 {
     public void Configure(EntityTypeBuilder<Airport> builder)
     {
-        builder.ToTable("Airport");
 
         builder.Property(x => x.Id);
     }
@@ -190,7 +192,6 @@ internal sealed class VendorConfiguration : IEntityTypeConfiguration<Vendor>
 {
     public void Configure(EntityTypeBuilder<Vendor> builder)
     {
-        builder.ToTable("Vendor");
 
         builder.Property(x => x.Id);
     }
@@ -201,6 +202,7 @@ internal sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
     public void Configure(EntityTypeBuilder<Product> builder)
     {
         builder.HasOne(x => x.Vendor).WithMany(x => x.Products).HasForeignKey(x => x.VendorIdentifier).IsRequired();
+
 
         builder.Property(x => x.Id);
     }

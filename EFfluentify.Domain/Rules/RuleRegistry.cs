@@ -29,9 +29,12 @@ namespace EFfluentify.Domain.Rules
                 {
                     if (rule.CanApply(attr, property))
                     {
-                        var call = rule.GetFluentCall(attr, property);
-                        if (!string.IsNullOrWhiteSpace(call))
-                            yield return call!;
+                        var lines = rule.GetFluentLines(attr, property);
+                        foreach (var line in lines)
+                        {
+                            if (!string.IsNullOrWhiteSpace(line))
+                                yield return line;
+                        }
                     }
                 }
             }

@@ -1,4 +1,4 @@
-﻿using EFfluentify.Domain.Models;
+using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -15,8 +15,10 @@ namespace EFfluentify.Domain.Rules.PropertyRules
                && property.IsNullable
                && !LooksLikeForeignKey(property);
 
-        public string? GetFluentCall(AttributeEntry attribute, Property property)
-            => ".IsRequired(false)";
+        public IEnumerable<string> GetFluentLines(AttributeEntry attribute, Property property)
+        {
+            yield return ".IsRequired(false)";
+        }
 
         public IEnumerable<string> GetAnnotationPropertyNames()
         {

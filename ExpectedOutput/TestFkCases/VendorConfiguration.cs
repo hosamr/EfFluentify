@@ -8,8 +8,6 @@ internal sealed class VendorConfiguration : IEntityTypeConfiguration<Vendor>
 {
     public void Configure(EntityTypeBuilder<Vendor> builder)
     {
-        builder.ToTable("Vendor");
-
         builder.Property(x => x.Id);
     }
 }
