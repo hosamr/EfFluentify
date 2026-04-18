@@ -1,4 +1,4 @@
-﻿using EFfluentify.Application.Helpers;
+using EFfluentify.Domain.Helpers;
 using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules.Interfaces;
 
@@ -7,12 +7,12 @@ namespace EFfluentify.Domain.Rules.EntityRules
     public sealed class IndexAttributeToHasIndexRule : IEntityFluentRule
     {
         public bool CanApply(EntityModel entity)
-            => entity.Attributes.Any(a => a.Name is "Index" or "IndexAttribute");
+            => entity.Attributes.Any(EfTypeHelper.IsIndexAttribute);
 
         public IEnumerable<string> GetFluentLines(EntityModel entity)
         {
             var indexAttrs = entity.Attributes
-                .Where(a => a.Name is "Index" or "IndexAttribute");
+                .Where(EfTypeHelper.IsIndexAttribute);
 
             foreach (var indexAttr in indexAttrs)
             {
@@ -55,7 +55,7 @@ namespace EFfluentify.Domain.Rules.EntityRules
             {
                 foreach (var name in SplitIfCombined(raw))
                 {
-                    var normalized = EfTypeClassifier.NormalizeMemberName(name);
+                    var normalized = EfTypeHelper.NormalizeMemberName(name);
                     if (!string.IsNullOrWhiteSpace(normalized))
                         results.Add(normalized);
                 }

@@ -1,4 +1,4 @@
-﻿using EFfluentify.Application.Helpers;
+using EFfluentify.Domain.Helpers;
 using EFfluentify.Domain.Models;
 
 namespace EFfluentify.Domain.Rules.Helpers
@@ -17,7 +17,7 @@ namespace EFfluentify.Domain.Rules.Helpers
 
         public bool TryGetEntity(string typeName, out EntityModel entity)
         {
-            typeName = EfTypeClassifier.NormalizeTypeName(typeName);
+            typeName = EfTypeHelper.NormalizeTypeName(typeName);
             return _byName.TryGetValue(typeName, out entity!);
             
         }

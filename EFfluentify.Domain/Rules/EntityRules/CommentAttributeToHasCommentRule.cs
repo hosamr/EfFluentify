@@ -1,24 +1,21 @@
-﻿using EFfluentify.Domain.Models;
+using EFfluentify.Domain.Helpers;
+using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EFfluentify.Domain.Rules.EntityRules
 {
     public sealed class CommentAttributeToHasCommentRule : IEntityFluentRule
     {
         public bool CanApply(EntityModel entity)
-            => entity.Attributes.Any(a => a.Name is "Comment" or "CommentAttribute");
+            => entity.Attributes.Any(EfTypeHelper.IsCommentAttribute);
 
         public IEnumerable<string> GetFluentLines(EntityModel entity)
         {
-            var commentAttr = entity.Attributes.First(a => a.Name is "Comment" or "CommentAttribute");
+            var commentAttr = entity.Attributes.First(EfTypeHelper.IsCommentAttribute);
 
-            object? commentObj = commentAttr.PositionalArgs.Count > 0 ? commentAttr.PositionalArgs[0] : null;
-            var comment = commentObj as string;
+            var comment = commentAttr.PositionalArgs.Count > 0
+                ? commentAttr.PositionalArgs[0] as string
+                : null;
 
             if (!string.IsNullOrWhiteSpace(comment))
                 yield return $"builder.HasComment({comment});";
@@ -29,6 +26,5 @@ namespace EFfluentify.Domain.Rules.EntityRules
             yield return "Comment";
             yield return "CommentAttribute";
         }
-
     }
 }

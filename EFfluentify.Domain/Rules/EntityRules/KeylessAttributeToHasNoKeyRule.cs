@@ -1,4 +1,5 @@
-﻿using EFfluentify.Domain.Models;
+using EFfluentify.Domain.Helpers;
+using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules.Interfaces;
 
 namespace EFfluentify.Domain.Rules.EntityRules
@@ -6,7 +7,7 @@ namespace EFfluentify.Domain.Rules.EntityRules
     public sealed class KeylessAttributeToHasNoKeyRule : IEntityFluentRule
     {
         public bool CanApply(EntityModel entity)
-            => entity.Attributes.Any(a => a.Name is "Keyless" or "KeylessAttribute");
+            => entity.Attributes.Any(EfTypeHelper.IsKeylessAttribute);
 
         public IEnumerable<string> GetFluentLines(EntityModel entity)
         {

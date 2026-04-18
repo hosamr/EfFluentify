@@ -1,4 +1,5 @@
-﻿using EFfluentify.Domain.Models;
+using EFfluentify.Domain.Helpers;
+using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules.Interfaces;
 
 namespace EFfluentify.Domain.Rules.EntityRules
@@ -6,12 +7,12 @@ namespace EFfluentify.Domain.Rules.EntityRules
     public sealed class KeyAttributeToHasKeyRule : IEntityFluentRule
     {
         public bool CanApply(EntityModel entity)
-            => entity.Properties.Any(p => p.Attributes.Any(IsKeyAttribute));
+            => entity.Properties.Any(EfTypeHelper.HasKeyAttribute);
 
         public IEnumerable<string> GetFluentLines(EntityModel entity)
         {
             var keyProps = entity.Properties
-                .Where(p => p.Attributes.Any(IsKeyAttribute))
+                .Where(EfTypeHelper.HasKeyAttribute)
                 .Select(p => p.Name)
                 .ToList();
 
@@ -33,9 +34,6 @@ namespace EFfluentify.Domain.Rules.EntityRules
             yield return "Key";
             yield return "KeyAttribute";
         }
-
-        private static bool IsKeyAttribute(AttributeEntry a)
-            => a.Name is "Key" or "KeyAttribute";
     }
 
 }

@@ -1,5 +1,5 @@
 using System.Text;
-using EFfluentify.Application.Helpers;
+using EFfluentify.Domain.Helpers;
 using EFfluentify.Application.Interfaces;
 using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules.Interfaces;
@@ -96,29 +96,29 @@ namespace EFfluentify.Infrastructure.CodeGen
                     continue;
                 }
 
-                var calls = _rules.GetCallsForProperty(prop)
-                                  .Where(c => !string.IsNullOrWhiteSpace(c))
-                                  .ToList();
+                var propertyLines = _rules.GetCallsForProperty(prop)
+                                          .Where(line => !string.IsNullOrWhiteSpace(line))
+                                          .ToList();
 
-                if (ShouldSkipProperty(prop.Name, calls.Count, metadata))
+                if (ShouldSkipProperty(prop.Name, propertyLines.Count, metadata))
                 {
                     continue;
                 }
 
                 sb.Append($"        builder.Property(x => x.{prop.Name})");
 
-                foreach (var c in calls.Distinct(StringComparer.Ordinal))
+                foreach (var line in propertyLines.Distinct(StringComparer.Ordinal))
                 {
-                    sb.Append(c);
+                    sb.Append(line);
                 }
 
                 sb.AppendLine(";");
             }
         }
 
-        private static bool ShouldSkipProperty(string propName, int callCount, EntityMetadata metadata)
+        private static bool ShouldSkipProperty(string propName, int lineCount, EntityMetadata metadata)
         {
-            if (callCount > 0)
+            if (lineCount > 0)
                 return false;
 
             return metadata.IsKey(propName) || metadata.IsForeignKey(propName);
@@ -151,7 +151,7 @@ namespace EFfluentify.Infrastructure.CodeGen
                 _foreignKeyProperties = GetForeignKeyProperties(entity);
             }
 
-            public bool IsNavigationProperty(Property prop) => EfTypeClassifier.IsNavigationProperty(prop, _allEntities);
+            public bool IsNavigationProperty(Property prop) => EfTypeHelper.IsNavigationProperty(prop, _allEntities);
             public bool IsIgnored(string propName) => _ignoredProperties.Contains(propName);
             public bool IsKey(string propName) => _keyProperties.Contains(propName);
             public bool IsForeignKey(string propName) => _foreignKeyProperties.Contains(propName);
@@ -159,7 +159,7 @@ namespace EFfluentify.Infrastructure.CodeGen
             private static HashSet<string> GetKeyProperties(EntityModel entity)
             {
                 return entity.Properties
-                    .Where(p => p.Attributes.Any(a => a.Name is "Key" or "KeyAttribute"))
+                    .Where(EfTypeHelper.HasKeyAttribute)
                     .Select(p => p.Name)
                     .ToHashSet(StringComparer.OrdinalIgnoreCase);
             }
@@ -167,7 +167,7 @@ namespace EFfluentify.Infrastructure.CodeGen
             private static HashSet<string> GetIgnoredProperties(EntityModel entity)
             {
                 return entity.Properties
-                    .Where(p => p.Attributes.Any(a => a.Name is "NotMapped" or "NotMappedAttribute"))
+                    .Where(EfTypeHelper.HasNotMappedAttribute)
                     .Select(p => p.Name)
                     .ToHashSet(StringComparer.OrdinalIgnoreCase);
             }
@@ -178,20 +178,18 @@ namespace EFfluentify.Infrastructure.CodeGen
 
                 foreach (var prop in entity.Properties)
                 {
-                    var fkAttr = prop.Attributes.FirstOrDefault(a => a.Name is "ForeignKey" or "ForeignKeyAttribute");
+                    var fkAttr = EfTypeHelper.TryGetForeignKeyAttribute(prop);
                     if (fkAttr == null)
                         continue;
-                    
+
                     var arg0 = fkAttr.PositionalArgs.FirstOrDefault();
                     if (string.IsNullOrWhiteSpace(arg0))
                         continue;
 
-                    if (EfTypeClassifier.IsNavigationProperty(prop, _allEntities) || EfTypeClassifier.IsCollectionType(prop.TypeName))
+                    if (EfTypeHelper.IsNavigationProperty(prop, _allEntities) || EfTypeHelper.IsCollectionType(prop.TypeName))
                     {
-                        foreach (var fk in EfTypeClassifier.SplitFkNames(arg0))
-                        {
+                        foreach (var fk in EfTypeHelper.SplitFkNames(arg0))
                             fkPropNames.Add(fk);
-                        }
                     }
                     else
                     {
