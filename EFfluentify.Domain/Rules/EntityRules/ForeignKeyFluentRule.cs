@@ -1,3 +1,4 @@
+using System.Text;
 using EFfluentify.Domain.Helpers;
 using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules.Helpers;
@@ -22,12 +23,14 @@ namespace EFfluentify.Domain.Rules.EntityRules
 
         public override IEnumerable<string> GetFluentLines(EntityModel entity)
         {
-            var pairs = CollectForeignKeyPairs(entity).ToList();
+            var seenNavs = new HashSet<string>(StringComparer.Ordinal);
 
-            foreach (var pair in pairs)
+            foreach (var pair in CollectForeignKeyPairs(entity))
             {
-                foreach (var line in BuildRelationshipLines(entity, pair))
-                    yield return line;
+                if (!seenNavs.Add(pair.NavName))
+                    continue;
+
+                yield return BuildRelationshipLine(entity, pair);
             }
         }
 
@@ -37,6 +40,8 @@ namespace EFfluentify.Domain.Rules.EntityRules
             IReadOnlyList<string> FkPropertyNames,
             string? InverseNavName
         );
+
+        private readonly record struct Inverse(string Call, bool IsOneToOne);
 
         private IEnumerable<ForeignKeyPair> CollectForeignKeyPairs(EntityModel entity)
         {
@@ -50,195 +55,163 @@ namespace EFfluentify.Domain.Rules.EntityRules
                 if (string.IsNullOrWhiteSpace(arg0))
                     continue;
 
-                if (IsNavigationProperty(entity, prop))
-                {
-                    var fkProps = EfTypeHelper.SplitFkNames(arg0).ToList();
-                    if (fkProps.Count == 0)
-                        continue;
+                var pair = IsNavigationProperty(entity, prop)
+                    ? BuildPairFromNavigation(prop, arg0!)
+                    : BuildPairFromScalar(entity, prop, arg0!);
 
-                    yield return new ForeignKeyPair(
-                        NavName: prop.Name,
-                        PrincipalTypeName: prop.TypeName,
-                        FkPropertyNames: fkProps,
-                        InverseNavName: GetInversePropertyName(prop)
-                    );
-                }
-                else
-                {
-                    var navName = EfTypeHelper.NormalizeMemberName(arg0);
-                    if (string.IsNullOrWhiteSpace(navName))
-                        continue;
-
-                    var navProp = entity.Properties.FirstOrDefault(p => p.Name == navName);
-
-                    yield return new ForeignKeyPair(
-                        NavName: navName!,
-                        PrincipalTypeName: navProp?.TypeName ?? "",
-                        FkPropertyNames: new[] { prop.Name },
-                        InverseNavName: navProp != null ? GetInversePropertyName(navProp) : null
-                    );
-                }
+                if (pair != null)
+                    yield return pair;
             }
         }
 
-        private IEnumerable<string> BuildRelationshipLines(EntityModel dependentEntity, ForeignKeyPair pair)
+        private static ForeignKeyPair? BuildPairFromNavigation(Property navProp, string arg0)
         {
-            // Determine principal type
-            var principalType = EfTypeHelper.NormalizeTypeName(pair.PrincipalTypeName);
-            if (string.IsNullOrWhiteSpace(principalType))
-            {
-                // Try fallback: infer from nav property on dependent entity
-                var navProp = dependentEntity.Properties.FirstOrDefault(p => p.Name == pair.NavName);
-                if (navProp != null)
-                    principalType = EfTypeHelper.NormalizeTypeName(navProp.TypeName);
-            }
+            var fkProps = EfTypeHelper.SplitFkNames(arg0).ToList();
+            if (fkProps.Count == 0)
+                return null;
 
-            // choose WithMany vs WithOne (+ inverse nav if can find)
-            var (withCall, isOneToOne) = DecideInverse(dependentEntity, pair);
+            return new ForeignKeyPair(
+                NavName: navProp.Name,
+                PrincipalTypeName: navProp.TypeName,
+                FkPropertyNames: fkProps,
+                InverseNavName: GetInversePropertyName(navProp));
+        }
 
-            var fkExpr = pair.FkPropertyNames.Count == 1
-                ? $"x => x.{pair.FkPropertyNames[0]}"
-                : $"x => new {{ {string.Join(", ", pair.FkPropertyNames.Select(n => $"x.{n}"))} }}";
+        private static ForeignKeyPair? BuildPairFromScalar(EntityModel entity, Property fkProp, string arg0)
+        {
+            var navName = EfTypeHelper.NormalizeMemberName(arg0);
+            if (string.IsNullOrWhiteSpace(navName))
+                return null;
 
-            var sb = new System.Text.StringBuilder();
+            var navProp = entity.Properties.FirstOrDefault(p => p.Name == navName);
+
+            return new ForeignKeyPair(
+                NavName: navName!,
+                PrincipalTypeName: navProp?.TypeName ?? "",
+                FkPropertyNames: new[] { fkProp.Name },
+                InverseNavName: navProp != null ? GetInversePropertyName(navProp) : null);
+        }
+
+        private string BuildRelationshipLine(EntityModel dependent, ForeignKeyPair pair)
+        {
+            var inverse = ResolveInverse(dependent, pair);
+            var fkExpr = BuildFkLambda(pair.FkPropertyNames);
+
+            var sb = new StringBuilder();
             sb.Append($"builder.HasOne(x => x.{pair.NavName})");
-            sb.Append(withCall);
+            sb.Append(inverse.Call);
 
-            // One-to-one: often needs generic HasForeignKey<Dependent>
-            if (isOneToOne)
-            {
-                sb.Append($".HasForeignKey<{dependentEntity.Name}>({fkExpr})");
-            }
-            else
-            {
-                sb.Append($".HasForeignKey({fkExpr})");
-            }
+            sb.Append(inverse.IsOneToOne
+                ? $".HasForeignKey<{dependent.Name}>({fkExpr})"
+                : $".HasForeignKey({fkExpr})");
 
-            // Check IsRequired
-            if (IsRequired(dependentEntity, pair.FkPropertyNames))
-            {
+            if (IsRequired(dependent, pair.FkPropertyNames))
                 sb.Append(".IsRequired()");
-            }
 
-            var deleteBehavior = GetDeleteBehavior(dependentEntity, pair);
+            var deleteBehavior = GetDeleteBehavior(dependent, pair);
             if (!string.IsNullOrEmpty(deleteBehavior))
-            {
                 sb.Append($".OnDelete({deleteBehavior})");
-            }
 
-            sb.Append(";");
-            yield return sb.ToString();
+            return sb.Append(';').ToString();
         }
 
-        private (string withCall, bool isOneToOne) DecideInverse(EntityModel dependent, ForeignKeyPair pair)
+        private static string BuildFkLambda(IReadOnlyList<string> fkProps) =>
+            fkProps.Count == 1
+                ? $"x => x.{fkProps[0]}"
+                : $"x => new {{ {string.Join(", ", fkProps.Select(n => $"x.{n}"))} }}";
+
+        private Inverse ResolveInverse(EntityModel dependent, ForeignKeyPair pair)
         {
-            // 1. Explicit [InverseProperty] on the Dependent Navigation Property
             if (!string.IsNullOrEmpty(pair.InverseNavName))
+                return ResolveExplicitInverse(dependent, pair);
+
+            var principalType = EfTypeHelper.NormalizeTypeName(pair.PrincipalTypeName);
+            if (_ctx.TryGetEntity(principalType, out var principal))
             {
-                // We have the name of the navigation property on the Principal side.
-                // We need to know if it's a Collection or Reference to choose WithMany vs WithOne.
-
-                // If we can resolve principal entity, check the property type
-                var principalTypeName = EfTypeHelper.NormalizeTypeName(pair.PrincipalTypeName);
-                if (_ctx.TryGetEntity(principalTypeName, out var principal))
-                {
-                    var invProp = principal.Properties.FirstOrDefault(p => p.Name == pair.InverseNavName);
-                    if (invProp != null)
-                    {
-                        if (EfTypeHelper.IsCollectionType(invProp.TypeName))
-                            return ($".WithMany(x => x.{pair.InverseNavName})", false);
-
-                        return ($".WithOne(x => x.{pair.InverseNavName})", true);
-                    }
-                }
-
-                // Fallback: If we can't find the property on principal (maybe missing source), we guess.
-                // Usually matching inverse implies bidirection.
-                // If we assume standard 1:N, then inverse is Collection -> WithMany.
-                // If we assume 1:1, inverse is Reference -> WithOne.
-                // For safety, defaulting to WithMany is common, BUT OneToOneSignal is strong.
-                if (EfTypeHelper.HasOneToOneSignal(dependent))
-                    return ($".WithOne(x => x.{pair.InverseNavName})", true);
-
-                return ($".WithMany(x => x.{pair.InverseNavName})", false);
+                return ResolveFromPrincipalInverseAttribute(principal, pair)
+                    ?? ResolveByAutoDiscovery(dependent, principal, pair);
             }
 
-            // 2. Resolve Principal and look for [InverseProperty] pointing BACK to us
-            var pType = EfTypeHelper.NormalizeTypeName(pair.PrincipalTypeName);
-            if (_ctx.TryGetEntity(pType, out var principalEntity))
-            {
-                // Search for a property on Principal that has [InverseProperty(pair.NavName)]
-                var invProp = principalEntity.Properties
-                    .FirstOrDefault(p =>
-                    {
-                        var attr = EfTypeHelper.TryGetInversePropertyAttribute(p);
-                        if (attr == null) return false;
-
-                        var arg = EfTypeHelper.NormalizeMemberName(attr.PositionalArgs.FirstOrDefault() as string ?? "");
-                        return string.Equals(arg, pair.NavName, StringComparison.Ordinal);
-                    });
-
-                if (invProp != null)
-                {
-                    if (EfTypeHelper.IsCollectionType(invProp.TypeName))
-                        return ($".WithMany(x => x.{invProp.Name})", false);
-
-                    return ($".WithOne(x => x.{invProp.Name})", true);
-                }
-
-                // 3. Auto-discovery by type matching (existing logic)
-                var inverseCandidates = FindInverseNavCandidates(principalEntity, dependent.Name).ToList();
-
-                // Refined Heuristic:
-                // If One-to-One signal is present, we expect the inverse to be a Reference property (WithOne).
-                // If not, we expect the inverse to be a Collection property (WithMany).
-
-                if (EfTypeHelper.HasOneToOneSignal(dependent))
-                {
-                    // Look for single Reference candidate
-                    var refs = inverseCandidates.Where(c => !c.isCollection).ToList();
-                    if (refs.Count == 1)
-                        return ($".WithOne(x => x.{refs[0].name})", true);
-
-                    // If ambiguous or none, default
-                    return (".WithOne()", true);
-                }
-                else
-                {
-                    // Standard heuristic:
-                    // If there is exactly one Collection candidate -> WithMany
-                    // If there is exactly one Reference candidate -> WithOne (Standard 1:1)
-                    var cols = inverseCandidates.Where(c => c.isCollection).ToList();
-                    var refs = inverseCandidates.Where(c => !c.isCollection).ToList();
-
-                    if (cols.Count == 1 && refs.Count == 0)
-                        return ($".WithMany(x => x.{cols[0].name})", false);
-
-                    if (refs.Count == 1 && cols.Count == 0)
-                        return ($".WithOne(x => x.{refs[0].name})", true);
-
-                    // If ambiguous (multiple match), prefer Collection if any exist (1:N is more common than 1:1)
-                    // Use the first collection candidate instead of defaulting to .WithMany()
-                    if (cols.Count > 0)
-                        return ($".WithMany(x => x.{cols[0].name})", false);
-
-                    // If only multiple refs exist...? Rare. Default to WithMany is safer unless we are sure.
-                    // But if we have NO candidates, we fall through.
-                    return (".WithMany()", false);
-                }
-            }
-
-            // No principal entity available => fall back to safest default
-            if (EfTypeHelper.HasOneToOneSignal(dependent))
-                return (".WithOne()", true);
-
-            return (".WithMany()", false);
+            return DefaultInverse(dependent);
         }
 
-        private static IEnumerable<(string name, bool isCollection)> FindInverseNavCandidates(EntityModel principal, string dependentEntityName)
+        private Inverse ResolveExplicitInverse(EntityModel dependent, ForeignKeyPair pair)
+        {
+            var principalType = EfTypeHelper.NormalizeTypeName(pair.PrincipalTypeName);
+            if (_ctx.TryGetEntity(principalType, out var principal))
+            {
+                var invProp = principal.Properties.FirstOrDefault(p => p.Name == pair.InverseNavName);
+                if (invProp != null)
+                    return InverseFor(invProp.TypeName, pair.InverseNavName!);
+            }
+
+            return EfTypeHelper.HasOneToOneSignal(dependent)
+                ? new Inverse($".WithOne(x => x.{pair.InverseNavName})", true)
+                : new Inverse($".WithMany(x => x.{pair.InverseNavName})", false);
+        }
+
+        private static Inverse? ResolveFromPrincipalInverseAttribute(EntityModel principal, ForeignKeyPair pair)
+        {
+            var invProp = principal.Properties.FirstOrDefault(p =>
+            {
+                var attr = EfTypeHelper.TryGetInversePropertyAttribute(p);
+                if (attr == null)
+                    return false;
+
+                var arg = EfTypeHelper.NormalizeMemberName(attr.PositionalArgs.FirstOrDefault() as string ?? "");
+                return string.Equals(arg, pair.NavName, StringComparison.Ordinal);
+            });
+
+            return invProp == null ? null : InverseFor(invProp.TypeName, invProp.Name);
+        }
+
+        private static Inverse ResolveByAutoDiscovery(EntityModel dependent, EntityModel principal, ForeignKeyPair pair)
+        {
+            var excludeNav = string.Equals(principal.Name, dependent.Name, StringComparison.Ordinal)
+                ? pair.NavName
+                : null;
+
+            var candidates = FindInverseNavCandidates(principal, dependent.Name, excludeNav).ToList();
+            var collections = candidates.Where(c => c.isCollection).ToList();
+            var references = candidates.Where(c => !c.isCollection).ToList();
+
+            if (EfTypeHelper.HasOneToOneSignal(dependent))
+            {
+                return references.Count == 1
+                    ? new Inverse($".WithOne(x => x.{references[0].name})", true)
+                    : new Inverse(".WithOne()", true);
+            }
+
+            if (collections.Count == 1 && references.Count == 0)
+                return new Inverse($".WithMany(x => x.{collections[0].name})", false);
+
+            if (references.Count == 1 && collections.Count == 0)
+                return new Inverse($".WithOne(x => x.{references[0].name})", true);
+
+            if (collections.Count > 0)
+                return new Inverse($".WithMany(x => x.{collections[0].name})", false);
+
+            return new Inverse(".WithMany()", false);
+        }
+
+        private static Inverse DefaultInverse(EntityModel dependent) =>
+            EfTypeHelper.HasOneToOneSignal(dependent)
+                ? new Inverse(".WithOne()", true)
+                : new Inverse(".WithMany()", false);
+
+        private static Inverse InverseFor(string inverseTypeName, string inverseName) =>
+            EfTypeHelper.IsCollectionType(inverseTypeName)
+                ? new Inverse($".WithMany(x => x.{inverseName})", false)
+                : new Inverse($".WithOne(x => x.{inverseName})", true);
+
+        private static IEnumerable<(string name, bool isCollection)> FindInverseNavCandidates(
+            EntityModel principal, string dependentEntityName, string? excludeNavName)
         {
             foreach (var p in principal.Properties)
             {
+                if (excludeNavName != null && string.Equals(p.Name, excludeNavName, StringComparison.Ordinal))
+                    continue;
+
                 if (EfTypeHelper.IsCollectionType(p.TypeName))
                 {
                     var elem = EfTypeHelper.TryGetCollectionElementType(p.TypeName);
@@ -256,8 +229,6 @@ namespace EFfluentify.Domain.Rules.EntityRules
 
         private static bool IsRequired(EntityModel entity, IEnumerable<string> fkProps)
         {
-            // If ANY of the FK properties is nullable, the relationship is optional.
-            // If ALL are non-nullable, it is required.
             foreach (var fkName in fkProps)
             {
                 var p = entity.Properties.FirstOrDefault(x => x.Name == fkName);
@@ -281,23 +252,30 @@ namespace EFfluentify.Domain.Rules.EntityRules
         private static string? GetInversePropertyName(Property prop)
         {
             var attr = EfTypeHelper.TryGetInversePropertyAttribute(prop);
-            if (attr == null) return null;
+            if (attr == null)
+                return null;
+
             return EfTypeHelper.NormalizeMemberName(attr.PositionalArgs.FirstOrDefault() as string ?? "");
         }
 
         private static string? GetDeleteBehavior(EntityModel entity, ForeignKeyPair pair)
         {
-            // 1. Look on the dependent navigation property
             var navProp = entity.Properties.FirstOrDefault(p => p.Name == pair.NavName);
-            if (navProp != null)
+            var fkProps = pair.FkPropertyNames
+                .Select(name => entity.Properties.FirstOrDefault(p => p.Name == name));
+
+            foreach (var candidate in new[] { navProp }.Concat(fkProps))
             {
-                var attr = EfTypeHelper.TryGetDeleteBehaviorAttribute(navProp);
-                if (attr != null)
-                {
-                    var arg = attr.PositionalArgs.FirstOrDefault() ?? attr.NamedArgs.GetValueOrDefault("behavior");
-                    if (!string.IsNullOrWhiteSpace(arg))
-                        return FormatDeleteBehavior(arg);
-                }
+                if (candidate == null)
+                    continue;
+
+                var attr = EfTypeHelper.TryGetDeleteBehaviorAttribute(candidate);
+                if (attr == null)
+                    continue;
+
+                var arg = attr.PositionalArgs.FirstOrDefault() ?? attr.NamedArgs.GetValueOrDefault("behavior");
+                if (!string.IsNullOrWhiteSpace(arg))
+                    return FormatDeleteBehavior(arg);
             }
 
             return null;
@@ -305,14 +283,7 @@ namespace EFfluentify.Domain.Rules.EntityRules
 
         private static string FormatDeleteBehavior(string arg)
         {
-            // arg comes from Roslyn, likely "DeleteBehavior.Cascade" or "Cascade"
-            // We want to ensure it is "DeleteBehavior.Cascade" for the generated code.
-
-            if (arg.Contains("DeleteBehavior."))
-                return arg; // Already fully qualified-ish
-
-            // If it's just "Cascade", prepend
-            return $"DeleteBehavior.{arg}";
+            return arg.Contains("DeleteBehavior.") ? arg : $"DeleteBehavior.{arg}";
         }
     }
 }
