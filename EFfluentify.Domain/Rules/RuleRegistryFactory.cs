@@ -24,6 +24,8 @@ namespace EFfluentify.Domain.Rules
                 new TimestampToRowVersionRule(),
                 new PrecisionFluentRule(),
                 new UnicodeFluentRule(),
+                new DefaultValueToHasDefaultValueRule(),
+                new CommentToHasCommentRule(),
                 new NullablePropertyFluentRule()
             };
 

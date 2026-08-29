@@ -8,9 +8,14 @@ namespace EFfluentify.Domain.Rules.EntityRules
     {
         protected override IEnumerable<string> SupportedAttributeNames => new[] { "Comment" };
 
+        public override bool CanApply(EntityModel entity)
+            => entity.Attributes.Any(IsSupportedAttribute);
+
         public override IEnumerable<string> GetFluentLines(EntityModel entity)
         {
-            var commentAttr = entity.Attributes.First(IsSupportedAttribute);
+            var commentAttr = entity.Attributes.FirstOrDefault(IsSupportedAttribute);
+            if (commentAttr == null)
+                yield break;
 
             var comment = commentAttr.PositionalArgs.Count > 0
                 ? commentAttr.PositionalArgs[0] as string
