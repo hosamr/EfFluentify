@@ -1,6 +1,4 @@
 using EFfluentify.Domain.Models;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace EFfluentify.Domain.Rules.EntityRules
 {
@@ -8,18 +6,12 @@ namespace EFfluentify.Domain.Rules.EntityRules
     {
         protected override IEnumerable<string> SupportedAttributeNames => new[] { "Comment" };
 
-        public override bool CanApply(EntityModel entity)
-            => entity.Attributes.Any(IsSupportedAttribute);
+        protected override AttributeScope Scope => AttributeScope.Entity;
 
         public override IEnumerable<string> GetFluentLines(EntityModel entity)
         {
             var commentAttr = entity.Attributes.FirstOrDefault(IsSupportedAttribute);
-            if (commentAttr == null)
-                yield break;
-
-            var comment = commentAttr.PositionalArgs.Count > 0
-                ? commentAttr.PositionalArgs[0] as string
-                : null;
+            var comment = commentAttr?.PositionalArgs.FirstOrDefault();
 
             if (!string.IsNullOrWhiteSpace(comment))
                 yield return $"builder.HasComment({comment});";

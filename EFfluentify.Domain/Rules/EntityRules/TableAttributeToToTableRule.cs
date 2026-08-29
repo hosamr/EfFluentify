@@ -1,6 +1,4 @@
 using EFfluentify.Domain.Models;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace EFfluentify.Domain.Rules.EntityRules
 {
@@ -8,15 +6,16 @@ namespace EFfluentify.Domain.Rules.EntityRules
     {
         protected override IEnumerable<string> SupportedAttributeNames => new[] { "Table" };
 
+        protected override AttributeScope Scope => AttributeScope.Entity;
+
         public override IEnumerable<string> GetFluentLines(EntityModel entity)
         {
-            var tableAttr = entity.Attributes.First(a => a.Name == "Table");
+            var tableAttr = entity.Attributes.FirstOrDefault(IsSupportedAttribute);
+            if (tableAttr == null)
+                yield break;
 
-            var nameObj = tableAttr.PositionalArgs[0];
-            tableAttr.NamedArgs.TryGetValue("Schema", out var schemaObj);
-
-            var tableName = nameObj as string;
-            var schema = schemaObj as string;
+            var tableName = tableAttr.PositionalArgs.FirstOrDefault();
+            tableAttr.NamedArgs.TryGetValue("Schema", out var schema);
 
             if (!string.IsNullOrWhiteSpace(tableName))
             {

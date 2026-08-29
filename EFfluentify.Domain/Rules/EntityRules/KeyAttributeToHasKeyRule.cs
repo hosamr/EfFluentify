@@ -1,12 +1,12 @@
 using EFfluentify.Domain.Models;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace EFfluentify.Domain.Rules.EntityRules
 {
     public sealed class KeyAttributeToHasKeyRule : EntityFluentRuleBase
     {
         protected override IEnumerable<string> SupportedAttributeNames => new[] { "Key" };
+
+        protected override AttributeScope Scope => AttributeScope.Property;
 
         public override IEnumerable<string> GetFluentLines(EntityModel entity)
         {

@@ -1,12 +1,12 @@
 using EFfluentify.Domain.Models;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace EFfluentify.Domain.Rules.EntityRules
 {
     public sealed class NotMappedEntityFluentRule : EntityFluentRuleBase
     {
         protected override IEnumerable<string> SupportedAttributeNames => new[] { "NotMapped" };
+
+        protected override AttributeScope Scope => AttributeScope.Property;
 
         public override IEnumerable<string> GetFluentLines(EntityModel entity)
         {

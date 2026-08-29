@@ -1,8 +1,5 @@
 using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace EFfluentify.Domain.Rules.EntityRules
 {
@@ -10,10 +7,13 @@ namespace EFfluentify.Domain.Rules.EntityRules
     {
         protected abstract IEnumerable<string> SupportedAttributeNames { get; }
 
+        protected abstract AttributeScope Scope { get; }
+
         public virtual bool CanApply(EntityModel entity)
         {
-            return entity.Attributes.Any(IsSupportedAttribute) ||
-                   entity.Properties.Any(p => p.Attributes.Any(IsSupportedAttribute));
+            return Scope == AttributeScope.Entity
+                ? entity.Attributes.Any(IsSupportedAttribute)
+                : entity.Properties.Any(p => p.Attributes.Any(IsSupportedAttribute));
         }
 
         public abstract IEnumerable<string> GetFluentLines(EntityModel entity);

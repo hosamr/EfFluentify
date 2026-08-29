@@ -8,6 +8,8 @@ namespace EFfluentify.Domain.Rules.EntityRules
     {
         protected override IEnumerable<string> SupportedAttributeNames => new[] { "Index" };
 
+        protected override AttributeScope Scope => AttributeScope.Entity;
+
         public override IEnumerable<string> GetFluentLines(EntityModel entity)
         {
             foreach (var indexAttr in entity.Attributes.Where(IsSupportedAttribute))

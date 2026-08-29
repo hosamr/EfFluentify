@@ -15,6 +15,8 @@ namespace EFfluentify.Domain.Rules.EntityRules
 
         protected override IEnumerable<string> SupportedAttributeNames => new[] { "ForeignKey", "InverseProperty", "DeleteBehavior" };
 
+        protected override AttributeScope Scope => AttributeScope.Property;
+
         public override bool CanApply(EntityModel entity)
             => entity.Properties.Any(EfTypeHelper.HasForeignKeyAttribute);
 
