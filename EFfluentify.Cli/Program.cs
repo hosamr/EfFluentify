@@ -18,8 +18,11 @@ namespace EFfluentify.Cli
                 var app = host.Services.GetRequiredService<CliApp>();
                 return await app.RunAsync(args);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Error.WriteLine($"Fatal error: {ex}");
+                Console.ResetColor();
                 return 1;
             }
         }

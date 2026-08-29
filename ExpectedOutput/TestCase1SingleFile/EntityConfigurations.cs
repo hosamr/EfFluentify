@@ -14,7 +14,7 @@ internal sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
 		builder.HasOne(x => x.User).WithMany(x => x.Orders).HasForeignKey(x => x.UserId).IsRequired();
 
         builder.Property(x => x.Name).IsRequired().HasMaxLength(50);
-        builder.Property(x => x.Description).IsUnicode(true).HasMinLength(10);
+        builder.Property(x => x.Description).IsUnicode(true);
         builder.Property(x => x.price).HasPrecision(18, 2);
         builder.Property(x => x.ProductUrl);
         builder.Property(x => x.email);

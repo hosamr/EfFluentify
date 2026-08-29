@@ -12,6 +12,7 @@ namespace EFfluentify.Tests.TestData
     {
         public int Id { get; set; }
         public string Name { get; set; }
+        [MinLength(10)]
         public string Description { get; set; }
         public decimal price { get; set; }
 

@@ -17,7 +17,6 @@ namespace EFfluentify.Domain.Rules
             {
                 new RequiredToIsRequiredRule(),
                 new MaxLengthToHasMaxLengthRule(),
-                new MinLengthToHasMinLengthRule(),
                 new ColumnToHasColumnRule(),
                 new DatabaseGeneratedToValueGeneratedRule(),
                 new ConcurrencyCheckToIsConcurrencyTokenRule(),
