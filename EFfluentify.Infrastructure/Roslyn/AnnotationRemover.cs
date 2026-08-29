@@ -4,7 +4,6 @@ using EFfluentify.Domain.Rules.Interfaces;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Data;
 
 namespace EFfluentify.Infrastructure.Roslyn
 {

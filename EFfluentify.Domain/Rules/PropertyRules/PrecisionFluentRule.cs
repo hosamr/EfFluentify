@@ -3,10 +3,11 @@ using EFfluentify.Domain.Rules.Interfaces;
 
 namespace EFfluentify.Domain.Rules.PropertyRules
 {
-    public class PrecisionFluentRule : IPropertyFluentRule
+    public sealed class PrecisionFluentRule : IPropertyFluentRule
     {
         public bool CanApply(AttributeEntry attribute, Property property)
             => attribute.Name is "Precision" or "PrecisionAttribute";
+
         public IEnumerable<string> GetFluentLines(AttributeEntry attribute, Property property)
         {
             var precision = attribute.PositionalArgs.ElementAtOrDefault(0);
@@ -30,11 +31,11 @@ namespace EFfluentify.Domain.Rules.PropertyRules
                 yield return $".HasPrecision({precision})";
             }
         }
+
         public IEnumerable<string> GetAnnotationPropertyNames()
         {
             yield return "Precision";
             yield return "PrecisionAttribute";
         }
-
     }
 }

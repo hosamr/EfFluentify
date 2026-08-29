@@ -55,7 +55,7 @@ namespace EFfluentify.Domain.Rules.EntityRules
                 if (string.IsNullOrWhiteSpace(arg0))
                     continue;
 
-                var pair = IsNavigationProperty(entity, prop)
+                var pair = IsNavigationProperty(prop)
                     ? BuildPairFromNavigation(prop, arg0!)
                     : BuildPairFromScalar(entity, prop, arg0!);
 
@@ -238,7 +238,7 @@ namespace EFfluentify.Domain.Rules.EntityRules
             return true;
         }
 
-        private static bool IsNavigationProperty(EntityModel entity, Property prop)
+        private static bool IsNavigationProperty(Property prop)
         {
             if (EfTypeHelper.IsCollectionType(prop.TypeName))
                 return true;

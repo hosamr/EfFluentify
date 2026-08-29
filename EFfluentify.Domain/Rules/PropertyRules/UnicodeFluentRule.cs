@@ -1,10 +1,5 @@
 using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EFfluentify.Domain.Rules.PropertyRules
 {
@@ -15,17 +10,13 @@ namespace EFfluentify.Domain.Rules.PropertyRules
 
         public IEnumerable<string> GetFluentLines(AttributeEntry attribute, Property property)
         {
-
-            if (attribute.PositionalArgs.Count > 0)
+            var arg = attribute.PositionalArgs.FirstOrDefault();
+            if (bool.TryParse(arg, out var isUnicode))
             {
-                bool isUnicode;
-
-                if (Boolean.TryParse(attribute.PositionalArgs[0], out isUnicode))
-                {
-                    yield return $".IsUnicode({isUnicode.ToString().ToLowerInvariant()})";
-                    yield break;
-                }
+                yield return $".IsUnicode({isUnicode.ToString().ToLowerInvariant()})";
+                yield break;
             }
+
             yield return ".IsUnicode()";
         }
 
@@ -35,5 +26,4 @@ namespace EFfluentify.Domain.Rules.PropertyRules
             yield return "UnicodeAttribute";
         }
     }
-
 }

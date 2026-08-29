@@ -1,10 +1,5 @@
 using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EFfluentify.Domain.Rules.PropertyRules
 {
@@ -19,6 +14,7 @@ namespace EFfluentify.Domain.Rules.PropertyRules
             yield return ".IsConcurrencyToken()";
             yield return ".ValueGeneratedOnAddOrUpdate()";
         }
+
         public IEnumerable<string> GetAnnotationPropertyNames()
         {
             yield return "Timestamp";

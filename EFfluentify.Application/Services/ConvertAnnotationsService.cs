@@ -1,6 +1,5 @@
 using EFfluentify.Application.Interfaces;
 using EFfluentify.Application.Models;
-using EFfluentify.Domain.Rules;
 using EFfluentify.Domain.Rules.Interfaces;
 
 namespace EFfluentify.Application.Services

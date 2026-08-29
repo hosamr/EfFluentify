@@ -1,6 +1,5 @@
 using EFfluentify.Application.Interfaces;
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 
 namespace EFfluentify.Application.Helpers

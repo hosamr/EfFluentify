@@ -1,10 +1,5 @@
 using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EFfluentify.Domain.Rules.PropertyRules
 {
@@ -28,6 +23,4 @@ namespace EFfluentify.Domain.Rules.PropertyRules
         private static bool LooksLikeForeignKey(Property p)
             => p.Name.EndsWith("Id", StringComparison.Ordinal);
     }
-
-
 }

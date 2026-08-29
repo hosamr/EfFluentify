@@ -137,17 +137,8 @@ namespace EFfluentify.Domain.Helpers
         public static bool IsInversePropertyAttribute(AttributeEntry a)
             => a.Name is "InverseProperty" or "InversePropertyAttribute";
 
-        public static bool IsIndexAttribute(AttributeEntry a)
-            => a.Name is "Index" or "IndexAttribute";
-
-        public static bool IsKeylessAttribute(AttributeEntry a)
-            => a.Name is "Keyless" or "KeylessAttribute";
-
         public static bool IsDeleteBehaviorAttribute(AttributeEntry a)
             => a.Name is "DeleteBehavior" or "DeleteBehaviorAttribute";
-
-        public static bool IsCommentAttribute(AttributeEntry a)
-            => a.Name is "Comment" or "CommentAttribute";
 
         public static bool HasKeyAttribute(Property p)
             => p.Attributes.Any(IsKeyAttribute);

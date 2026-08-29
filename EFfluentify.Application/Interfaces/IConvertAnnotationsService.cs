@@ -1,6 +1,4 @@
 using EFfluentify.Application.Models;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace EFfluentify.Application.Interfaces
 {

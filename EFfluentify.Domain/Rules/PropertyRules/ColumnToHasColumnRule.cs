@@ -10,25 +10,22 @@ namespace EFfluentify.Domain.Rules.PropertyRules
 
         public IEnumerable<string> GetFluentLines(AttributeEntry attribute, Property property)
         {
-            if (attribute.PositionalArgs is { Count: > 0 } ctorArgs &&
-                ctorArgs[0] is string name && !string.IsNullOrWhiteSpace(name))
+            var name = attribute.PositionalArgs.FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(name))
             {
                 yield return $".HasColumnName({name})";
             }
 
-            if (attribute.NamedArgs != null &&
-                attribute.NamedArgs.TryGetValue("TypeName", out var typeNameObj) &&
-                typeNameObj is string typeName &&
+            if (attribute.NamedArgs.TryGetValue("TypeName", out var typeName) &&
                 !string.IsNullOrWhiteSpace(typeName))
             {
                 yield return $".HasColumnType({typeName})";
             }
         }
+
         public IEnumerable<string> GetAnnotationPropertyNames()
         {
             yield return "Column";
         }
-
     }
-
 }

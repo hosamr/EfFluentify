@@ -10,10 +10,9 @@ namespace EFfluentify.Domain.Rules.PropertyRules
 
         public IEnumerable<string> GetFluentLines(AttributeEntry attribute, Property property)
         {
-            if (attribute.PositionalArgs is not { Count: > 0 } ctorArgs)
+            var arg = attribute.PositionalArgs.FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(arg))
                 yield break;
-
-            var arg = ctorArgs[0];
 
             var call = arg switch
             {
@@ -22,8 +21,11 @@ namespace EFfluentify.Domain.Rules.PropertyRules
                 "DatabaseGeneratedOption.None" => ".ValueGeneratedNever()",
                 _ => null
             };
-            if (call != null) yield return call;
+
+            if (call != null)
+                yield return call;
         }
+
         public IEnumerable<string> GetAnnotationPropertyNames()
         {
             yield return "DatabaseGenerated";

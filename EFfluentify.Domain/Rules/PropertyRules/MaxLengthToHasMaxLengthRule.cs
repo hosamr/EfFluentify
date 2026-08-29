@@ -1,7 +1,6 @@
 using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules.Interfaces;
 
-
 namespace EFfluentify.Domain.Rules.PropertyRules
 {
     public sealed class MaxLengthToHasMaxLengthRule : IPropertyFluentRule
@@ -11,17 +10,17 @@ namespace EFfluentify.Domain.Rules.PropertyRules
 
         public IEnumerable<string> GetFluentLines(AttributeEntry attribute, Property property)
         {
-            var hasPos = attribute.PositionalArgs.FirstOrDefault();
-            if (!string.IsNullOrWhiteSpace(hasPos))
+            var length = attribute.PositionalArgs.FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(length))
             {
-                yield return $".HasMaxLength({hasPos})";
+                yield return $".HasMaxLength({length})";
             }
-
             else if (attribute.NamedArgs.TryGetValue("MaximumLength", out var max))
             {
                 yield return $".HasMaxLength({max})";
             }
         }
+
         public IEnumerable<string> GetAnnotationPropertyNames()
         {
             yield return "MaxLength";
