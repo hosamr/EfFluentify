@@ -1,11 +1,10 @@
 using EFfluentify.Domain.Helpers;
 using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules.Helpers;
-using EFfluentify.Domain.Rules.Interfaces;
 
 namespace EFfluentify.Domain.Rules.EntityRules
 {
-    public sealed class ForeignKeyFluentRule : IEntityFluentRule
+    public sealed class ForeignKeyFluentRule : EntityFluentRuleBase
     {
         private readonly ModelContext _ctx;
 
@@ -14,10 +13,12 @@ namespace EFfluentify.Domain.Rules.EntityRules
             _ctx = ctx;
         }
 
-        public bool CanApply(EntityModel entity)
+        protected override IEnumerable<string> SupportedAttributeNames => new[] { "ForeignKey", "InverseProperty", "DeleteBehavior" };
+
+        public override bool CanApply(EntityModel entity)
             => entity.Properties.Any(EfTypeHelper.HasForeignKeyAttribute);
 
-        public IEnumerable<string> GetFluentLines(EntityModel entity)
+        public override IEnumerable<string> GetFluentLines(EntityModel entity)
         {
             var pairs = CollectForeignKeyPairs(entity).ToList();
 
@@ -26,16 +27,6 @@ namespace EFfluentify.Domain.Rules.EntityRules
                 foreach (var line in BuildRelationshipLines(entity, pair))
                     yield return line;
             }
-        }
-
-        public IEnumerable<string> GetAnnotationAttributeNames()
-        {
-            yield return "ForeignKey";
-            yield return "ForeignKeyAttribute";
-            yield return "InverseProperty";
-            yield return "InversePropertyAttribute";
-            yield return "DeleteBehavior";
-            yield return "DeleteBehaviorAttribute";
         }
 
         private sealed record ForeignKeyPair(

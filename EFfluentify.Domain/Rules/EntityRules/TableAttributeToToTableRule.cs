@@ -1,19 +1,14 @@
-﻿using EFfluentify.Domain.Models;
-using EFfluentify.Domain.Rules.Interfaces;
-using System;
+using EFfluentify.Domain.Models;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EFfluentify.Domain.Rules.EntityRules
 {
-    public sealed class TableAttributeToToTableRule : IEntityFluentRule
+    public sealed class TableAttributeToToTableRule : EntityFluentRuleBase
     {
-        public bool CanApply(EntityModel entity)
-            => entity.Attributes.Any(a => a.Name == "Table");
+        protected override IEnumerable<string> SupportedAttributeNames => new[] { "Table" };
 
-        public IEnumerable<string> GetFluentLines(EntityModel entity)
+        public override IEnumerable<string> GetFluentLines(EntityModel entity)
         {
             var tableAttr = entity.Attributes.First(a => a.Name == "Table");
 
@@ -35,11 +30,5 @@ namespace EFfluentify.Domain.Rules.EntityRules
                 yield return $"builder.ToTable(\"{entity.Name}\");";
             }
         }
-        public IEnumerable<string> GetAnnotationAttributeNames()
-        {
-            yield return "Table";
-            yield return "TableAttribute";
-        }
-
     }
 }

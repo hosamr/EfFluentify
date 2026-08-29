@@ -1,5 +1,4 @@
 using EFfluentify.Application.Interfaces;
-using EFfluentify.Application.Services;
 using EFfluentify.Application.Models;
 public class CliApp
 {

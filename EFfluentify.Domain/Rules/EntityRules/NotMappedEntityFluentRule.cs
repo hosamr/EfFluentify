@@ -1,28 +1,20 @@
-using EFfluentify.Domain.Helpers;
 using EFfluentify.Domain.Models;
-using EFfluentify.Domain.Rules.Interfaces;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace EFfluentify.Domain.Rules.EntityRules
 {
-    public sealed class NotMappedEntityFluentRule : IEntityFluentRule
+    public sealed class NotMappedEntityFluentRule : EntityFluentRuleBase
     {
-        public bool CanApply(EntityModel entity)
-            => entity.Properties.Any(EfTypeHelper.HasNotMappedAttribute);
+        protected override IEnumerable<string> SupportedAttributeNames => new[] { "NotMapped" };
 
-        public IEnumerable<string> GetFluentLines(EntityModel entity)
+        public override IEnumerable<string> GetFluentLines(EntityModel entity)
         {
             foreach (var property in entity.Properties)
             {
-                if (EfTypeHelper.HasNotMappedAttribute(property))
+                if (property.Attributes.Any(IsSupportedAttribute))
                     yield return $"builder.Ignore(e => e.{property.Name});";
             }
         }
-
-        public IEnumerable<string> GetAnnotationAttributeNames()
-        {
-            yield return "NotMapped";
-            yield return "NotMappedAttribute";
-        }
     }
-
 }

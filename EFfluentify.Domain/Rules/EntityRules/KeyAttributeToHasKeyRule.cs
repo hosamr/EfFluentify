@@ -1,39 +1,26 @@
-using EFfluentify.Domain.Helpers;
 using EFfluentify.Domain.Models;
-using EFfluentify.Domain.Rules.Interfaces;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace EFfluentify.Domain.Rules.EntityRules
 {
-    public sealed class KeyAttributeToHasKeyRule : IEntityFluentRule
+    public sealed class KeyAttributeToHasKeyRule : EntityFluentRuleBase
     {
-        public bool CanApply(EntityModel entity)
-            => entity.Properties.Any(EfTypeHelper.HasKeyAttribute);
+        protected override IEnumerable<string> SupportedAttributeNames => new[] { "Key" };
 
-        public IEnumerable<string> GetFluentLines(EntityModel entity)
+        public override IEnumerable<string> GetFluentLines(EntityModel entity)
         {
             var keyProps = entity.Properties
-                .Where(EfTypeHelper.HasKeyAttribute)
+                .Where(p => p.Attributes.Any(IsSupportedAttribute))
                 .Select(p => p.Name)
                 .ToList();
 
-            if (keyProps.Count == 0)
-                yield break;
-
-            if (keyProps.Count == 1)
+            if (keyProps.Count > 0)
             {
-                yield return $"builder.HasKey(e => e.{keyProps[0]});";
-                yield break;
+                yield return keyProps.Count == 1
+                    ? $"builder.HasKey(e => e.{keyProps[0]});"
+                    : $"builder.HasKey(e => new {{ {string.Join(", ", keyProps.Select(n => $"e.{n}"))} }});";
             }
-
-            var anon = string.Join(", ", keyProps.Select(n => $"e.{n}"));
-            yield return $"builder.HasKey(e => new {{ {anon} }});";
-        }
-
-        public IEnumerable<string> GetAnnotationAttributeNames()
-        {
-            yield return "Key";
-            yield return "KeyAttribute";
         }
     }
-
 }

@@ -1,87 +1,53 @@
 using EFfluentify.Domain.Helpers;
 using EFfluentify.Domain.Models;
-using EFfluentify.Domain.Rules.Interfaces;
+using System.Text;
 
 namespace EFfluentify.Domain.Rules.EntityRules
 {
-    public sealed class IndexAttributeToHasIndexRule : IEntityFluentRule
+    public sealed class IndexAttributeToHasIndexRule : EntityFluentRuleBase
     {
-        public bool CanApply(EntityModel entity)
-            => entity.Attributes.Any(EfTypeHelper.IsIndexAttribute);
+        protected override IEnumerable<string> SupportedAttributeNames => new[] { "Index" };
 
-        public IEnumerable<string> GetFluentLines(EntityModel entity)
+        public override IEnumerable<string> GetFluentLines(EntityModel entity)
         {
-            var indexAttrs = entity.Attributes
-                .Where(EfTypeHelper.IsIndexAttribute);
-
-            foreach (var indexAttr in indexAttrs)
+            foreach (var indexAttr in entity.Attributes.Where(IsSupportedAttribute))
             {
-                var propertyNames = ExtractPropertyNames(indexAttr).ToList();
+                var propertyNames = ExtractPropertyNames(indexAttr);
                 if (propertyNames.Count == 0)
                     continue;
 
-                indexAttr.NamedArgs.TryGetValue("Name", out var nameObj);
-                indexAttr.NamedArgs.TryGetValue("IsUnique", out var isUniqueObj);
+                indexAttr.NamedArgs.TryGetValue("Name", out var indexName);
+                indexAttr.NamedArgs.TryGetValue("IsUnique", out var isUniqueRaw);
+                bool.TryParse(isUniqueRaw, out bool isUnique);
 
-                var indexName = nameObj as string;
-                bool.TryParse(isUniqueObj, out bool isUnique);
-
-                var lambda = BuildIndexLambda(propertyNames);
-
-                var line = $"builder.HasIndex({lambda})";
-
-                if (isUnique == true)
-                    line += ".IsUnique()";
-
-                if (!string.IsNullOrWhiteSpace(indexName))
-                    line += $".HasDatabaseName({indexName})";
-
-                line += ";";
-                yield return line;
+                yield return BuildStatement(propertyNames, indexName, isUnique);
             }
         }
 
-        public IEnumerable<string> GetAnnotationAttributeNames()
-        {
-            yield return "Index";
-            yield return "IndexAttribute";
+        private static IReadOnlyList<string> ExtractPropertyNames(AttributeEntry indexAttr) {
+            return indexAttr.PositionalArgs
+                .SelectMany(raw => raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                .Select(EfTypeHelper.NormalizeMemberName)
+                .OfType<string>()
+                .ToList();
         }
 
-        private static IReadOnlyList<string> ExtractPropertyNames(AttributeEntry indexAttr)
+        private static string BuildStatement(IReadOnlyList<string> props, string? indexName, bool isUnique)
         {
-            var results = new List<string>();
+            var sb = new StringBuilder($"builder.HasIndex({BuildLambda(props)})");
 
-            foreach (var raw in indexAttr.PositionalArgs)
-            {
-                foreach (var name in SplitIfCombined(raw))
-                {
-                    var normalized = EfTypeHelper.NormalizeMemberName(name);
-                    if (!string.IsNullOrWhiteSpace(normalized))
-                        results.Add(normalized);
-                }
-            }
+            if (isUnique)
+                sb.Append(".IsUnique()");
 
-            return results;
+            if (!string.IsNullOrWhiteSpace(indexName))
+                sb.Append($".HasDatabaseName({indexName})");
+
+            return sb.Append(';').ToString();
         }
 
-        private static IEnumerable<string> SplitIfCombined(string raw)
-        {
-            if (string.IsNullOrWhiteSpace(raw))
-                yield break;
-
-            var parts = raw.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var p in parts)
-                yield return p.Trim();
-        }
-        
-        private static string BuildIndexLambda(IReadOnlyList<string> props)
-        {
-            if (props.Count == 1)
-                return $"e => e.{props[0]}";
-
-            var fields = string.Join(", ", props.Select(p => $"e.{p}"));
-            return $"e => new {{ {fields} }}";
-        }
+        private static string BuildLambda(IReadOnlyList<string> props) =>
+            props.Count == 1
+                ? $"e => e.{props[0]}"
+                : $"e => new {{ {string.Join(", ", props.Select(p => $"e.{p}"))} }}";
     }
-
 }

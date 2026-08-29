@@ -1,12 +1,10 @@
 using EFfluentify.Application.Interfaces;
 using EFfluentify.Application.Models;
-using EFfluentify.Domain.Rules;
 using EFfluentify.Domain.Rules.Interfaces;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Data;
-using System.Text;
 
 namespace EFfluentify.Infrastructure.Roslyn
 {
@@ -25,23 +23,23 @@ namespace EFfluentify.Infrastructure.Roslyn
         {
             var rules = _ruleRegistryFactory.Create();
             var files = _fileSystemService.ExpandFiles(inputs)
-                         .Where(f => f.EndsWith(".cs", StringComparison.OrdinalIgnoreCase));
+                         .Where(f => f.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
+                         .ToList();
 
             var targets = rules.AllAnnotationAttributeNames()
-                .Select(n => n.EndsWith("Attribute", StringComparison.Ordinal) ? n[..^9] : n)
+                .Select(TrimAttributeSuffix)
                 .ToHashSet(StringComparer.Ordinal);
 
-            var results = new List<AnnotationRemovalChange>();
-            foreach (var file in files)
+            var results = new System.Collections.Concurrent.ConcurrentBag<AnnotationRemovalChange>();
+
+            await Parallel.ForEachAsync(files, async (file, cancellationToken) =>
             {
                 var original = await _fileSystemService.ReadFileAsync(file);
-                var tree = CSharpSyntaxTree.ParseText(original);
-                var root = tree.GetCompilationUnitRoot();
+                var tree = CSharpSyntaxTree.ParseText(original, cancellationToken: cancellationToken);
+                var root = tree.GetCompilationUnitRoot(cancellationToken);
 
                 var rewriter = new AnnotationStripper(targets);
                 var newRoot = (CompilationUnitSyntax)rewriter.Visit(root);
-
-                newRoot = RemoveEmptyAttributeLists(newRoot);
 
                 var updated = newRoot.NormalizeWhitespace().ToFullString();
 
@@ -49,14 +47,14 @@ namespace EFfluentify.Infrastructure.Roslyn
                 {
                     results.Add(new AnnotationRemovalChange(file, original, updated));
                 }
-            }
-            return results;
+            });
+
+            return results.OrderBy(r => r.FilePath).ToList();
         }
 
-        private CompilationUnitSyntax RemoveEmptyAttributeLists(CompilationUnitSyntax root)
+        private static string TrimAttributeSuffix(string name)
         {
-            var rewriter = new EmptyAttrListCleaner();
-            return (CompilationUnitSyntax)rewriter.Visit(root);
+            return name.EndsWith("Attribute", StringComparison.Ordinal) ? name[..^9] : name;
         }
 
         private sealed class AnnotationStripper : CSharpSyntaxRewriter
@@ -70,7 +68,6 @@ namespace EFfluentify.Infrastructure.Roslyn
 
             public override SyntaxNode? VisitAttributeList(AttributeListSyntax node)
             {
-                // Filter attributes in this list
                 var kept = new SeparatedSyntaxList<AttributeSyntax>();
                 foreach (var attr in node.Attributes)
                 {
@@ -78,68 +75,29 @@ namespace EFfluentify.Infrastructure.Roslyn
                         kept = kept.Add(attr);
                 }
 
-                // If nothing left in this list, remove the whole list
                 if (kept.Count == 0) return null;
 
                 return node.WithAttributes(kept);
             }
 
-                private bool IsTarget(AttributeSyntax attr)
-                {
-                    // attr.Name could be "Required", "RequiredAttribute", "Schema.Column", "EF.Index", etc.
-                    var last = attr.Name switch
-                    {
-                        QualifiedNameSyntax q => q.Right.Identifier.Text,
-                        IdentifierNameSyntax id => id.Identifier.Text,
-                        GenericNameSyntax g => g.Identifier.Text,
-                        _ => attr.Name.ToString()
-                    };
-
-                    // strip trailing "Attribute" if present
-                    if (last.EndsWith("Attribute", StringComparison.Ordinal))
-                        last = last[..^9];
-
-                    return _targets.Contains(last);
-                }
-        }
-
-        private sealed class EmptyAttrListCleaner : CSharpSyntaxRewriter
-        {
-            public override SyntaxNode? VisitClassDeclaration(ClassDeclarationSyntax node)
-                => base.VisitClassDeclaration(Clean(node))!;
-            public override SyntaxNode? VisitPropertyDeclaration(PropertyDeclarationSyntax node)
-                => base.VisitPropertyDeclaration(Clean(node))!;
-            public override SyntaxNode? VisitFieldDeclaration(FieldDeclarationSyntax node)
-                => base.VisitFieldDeclaration(Clean(node))!;
-            public override SyntaxNode? VisitParameter(ParameterSyntax node)
-                => base.VisitParameter(Clean(node))!;
-
-            private T Clean<T>(T node) where T : SyntaxNode
+            private bool IsTarget(AttributeSyntax attr)
             {
-                if (node is null) return node!;
-                if (node is not CSharpSyntaxNode cs) return node;
+                var baseName = GetBaseAttributeName(attr.Name);
+                return _targets.Contains(baseName);
+            }
 
-                if (cs is MemberDeclarationSyntax m && m.AttributeLists.Count > 0)
+            private static string GetBaseAttributeName(NameSyntax name)
+            {
+                var text = name switch
                 {
-                    var keep = new SyntaxList<AttributeListSyntax>();
-                    foreach (var l in m.AttributeLists)
-                        if (l.Attributes.Count > 0) keep = keep.Add(l);
+                    QualifiedNameSyntax qn => GetBaseAttributeName(qn.Right),
+                    AliasQualifiedNameSyntax aqn => GetBaseAttributeName(aqn.Name),
+                    SimpleNameSyntax sn => sn.Identifier.Text,
+                    _ => name.ToString()
+                };
 
-                    return (T)(SyntaxNode)m.WithAttributeLists(keep);
-                }
-
-                if (cs is ParameterSyntax p && p.AttributeLists.Count > 0)
-                {
-                    var keep = new SyntaxList<AttributeListSyntax>();
-                    foreach (var l in p.AttributeLists)
-                        if (l.Attributes.Count > 0) keep = keep.Add(l);
-
-                    return (T)(SyntaxNode)p.WithAttributeLists(keep);
-                }
-
-                return node;
+                return TrimAttributeSuffix(text);
             }
         }
     }
-
 }

@@ -1,24 +1,15 @@
-using EFfluentify.Domain.Helpers;
 using EFfluentify.Domain.Models;
-using EFfluentify.Domain.Rules.Interfaces;
+using System.Collections.Generic;
 
 namespace EFfluentify.Domain.Rules.EntityRules
 {
-    public sealed class KeylessAttributeToHasNoKeyRule : IEntityFluentRule
+    public sealed class KeylessAttributeToHasNoKeyRule : EntityFluentRuleBase
     {
-        public bool CanApply(EntityModel entity)
-            => entity.Attributes.Any(EfTypeHelper.IsKeylessAttribute);
+        protected override IEnumerable<string> SupportedAttributeNames => new[] { "Keyless" };
 
-        public IEnumerable<string> GetFluentLines(EntityModel entity)
+        public override IEnumerable<string> GetFluentLines(EntityModel entity)
         {
             yield return "builder.HasNoKey();";
         }
-
-        public IEnumerable<string> GetAnnotationAttributeNames()
-        {
-            yield return "Keyless";
-            yield return "KeylessAttribute";
-        }
     }
-
 }
