@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
-namespace EFfluentify.Tests.TestData.TestFkCases
+namespace EFFluentify.Tests.TestData.TestFkCases
 {
     // 1. Basic Foreign Key on Navigation Property
     public class Blog

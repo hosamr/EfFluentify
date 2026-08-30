@@ -1,0 +1,144 @@
+using System.Text;
+using EFFluentify.Application.Interfaces;
+using EFFluentify.Application.Models;
+using EFFluentify.Domain.Helpers;
+using EFFluentify.Domain.Models;
+using EFFluentify.Domain.Rules.Helpers;
+using EFFluentify.Domain.Rules.Interfaces;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+
+namespace EFFluentify.Infrastructure.CodeGen
+{
+    public sealed class CSharpConfigEmitter : ICodeGenerator
+    {
+        private sealed record EmitContext(
+            IReadOnlyList<EntityModel> Entities,
+            IReadOnlySet<string> EntityNames,
+            IRuleRegistry Rules);
+
+        public Dictionary<string, string> Generate(IEnumerable<EntityModel> entities, PipelineOptions options, IRuleRegistry rules)
+        {
+            if (rules == null) throw new ArgumentNullException(nameof(rules));
+            if (entities == null) throw new ArgumentNullException(nameof(entities));
+
+            var entityList = entities.ToList();
+            var context = new EmitContext(entityList, EfTypeHelper.BuildEntityNameSet(entityList), rules);
+
+            return options.ManyFiles
+                ? GenerateMultipleFiles(context, options.RootNamespace)
+                : GenerateSingleFile(context, options.RootNamespace);
+        }
+
+        private static Dictionary<string, string> GenerateMultipleFiles(EmitContext context, string rootNs)
+        {
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var entity in context.Entities)
+            {
+                var sb = AddHeader(rootNs);
+                AppendConfig(sb, entity, context);
+                map[$"{entity.Name}Configuration.cs"] = Format(sb.ToString());
+            }
+
+            return map;
+        }
+
+        private static Dictionary<string, string> GenerateSingleFile(EmitContext context, string rootNs)
+        {
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var sb = AddHeader(rootNs);
+
+            foreach (var entity in context.Entities)
+            {
+                AppendConfig(sb, entity, context);
+                sb.AppendLine();
+            }
+
+            map["EntityConfigurations.cs"] = Format(sb.ToString());
+            return map;
+        }
+
+        private static string Format(string source)
+        {
+            var root = CSharpSyntaxTree.ParseText(source).GetRoot();
+
+            if (root.GetDiagnostics().Any(d => d.Severity == DiagnosticSeverity.Error))
+                return source;
+
+            return root
+                .NormalizeWhitespace(indentation: "    ", eol: Environment.NewLine)
+                .ToFullString();
+        }
+
+        private static void AppendConfig(StringBuilder sb, EntityModel entity, EmitContext context)
+        {
+            sb.AppendLine($"internal sealed class {entity.Name}Configuration : IEntityTypeConfiguration<{entity.Name}>");
+            sb.AppendLine("{");
+            sb.AppendLine($"    public void Configure(EntityTypeBuilder<{entity.Name}> builder)");
+            sb.AppendLine("    {");
+
+            var entityLines = context.Rules.GetCallsForEntity(entity).ToList();
+            foreach (var line in entityLines)
+                sb.AppendLine($"        {line}");
+
+            sb.AppendLine();
+
+            ConfigureProperties(sb, entity, context);
+
+            sb.AppendLine("    }");
+            sb.AppendLine("}");
+        }
+
+        private static void ConfigureProperties(StringBuilder sb, EntityModel entity, EmitContext context)
+        {
+            var metadata = new EntityMetadata(entity, context.EntityNames);
+
+            foreach (var prop in entity.Properties)
+            {
+                if (metadata.IsNavigationProperty(prop) || metadata.IsIgnored(prop.Name))
+                {
+                    continue;
+                }
+
+                var propertyLines = context.Rules.GetCallsForProperty(prop)
+                                            .Where(line => !string.IsNullOrWhiteSpace(line))
+                                            .ToList();
+
+                if (ShouldSkipProperty(prop.Name, propertyLines.Count, metadata))
+                {
+                    continue;
+                }
+
+                sb.Append($"        builder.Property(x => x.{prop.Name})");
+
+                foreach (var line in propertyLines.Distinct(StringComparer.Ordinal))
+                {
+                    sb.Append(line);
+                }
+
+                sb.AppendLine(";");
+            }
+        }
+
+        private static bool ShouldSkipProperty(string propName, int lineCount, EntityMetadata metadata)
+        {
+            if (lineCount > 0)
+                return false;
+
+            return metadata.IsKey(propName) || metadata.IsForeignKey(propName);
+        }
+
+        private static StringBuilder AddHeader(string rootNs)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("// <auto-generated />");
+            sb.AppendLine($"namespace {rootNs};");
+            sb.AppendLine();
+            sb.AppendLine("using Microsoft.EntityFrameworkCore;");
+            sb.AppendLine("using Microsoft.EntityFrameworkCore.Metadata.Builders;");
+            sb.AppendLine();
+            return sb;
+        }
+    }
+}

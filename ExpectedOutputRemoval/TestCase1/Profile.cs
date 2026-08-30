@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EFfluentify.Tests.TestData
+namespace EFFluentify.Tests.TestData
 {
     public class Profile
     {

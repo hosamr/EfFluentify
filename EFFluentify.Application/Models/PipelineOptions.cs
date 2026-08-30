@@ -1,0 +1,11 @@
+namespace EFFluentify.Application.Models
+{
+    public sealed class PipelineOptions
+    {
+        public string OutputDirectory { get; set; } = ".";
+        public bool ManyFiles { get; set; } = true;
+        public bool RemoveAnnotationsFromOriginal { get; set; } = false;
+        public string RootNamespace { get; set; } = "EFFluentify.Configurations";
+    }
+
+}
