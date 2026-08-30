@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 namespace EFfluentify.Cli
 {
@@ -9,13 +8,11 @@ namespace EFfluentify.Cli
         {
             try
             {
-                using var host = Host.CreateDefaultBuilder(args).ConfigureServices((ctx, services) =>
-                {
-                    services.AddEFfluentify();
+                using var provider = new ServiceCollection()
+                    .AddEFfluentify()
+                    .BuildServiceProvider();
 
-                }).Build();
-
-                var app = host.Services.GetRequiredService<CliApp>();
+                var app = provider.GetRequiredService<CliApp>();
                 return await app.RunAsync(args);
             }
             catch (Exception ex)

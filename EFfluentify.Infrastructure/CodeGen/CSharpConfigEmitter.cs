@@ -1,9 +1,12 @@
 using System.Text;
 using EFfluentify.Application.Interfaces;
 using EFfluentify.Application.Models;
+using EFfluentify.Domain.Helpers;
 using EFfluentify.Domain.Models;
 using EFfluentify.Domain.Rules.Helpers;
 using EFfluentify.Domain.Rules.Interfaces;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace EFfluentify.Infrastructure.CodeGen
 {
@@ -11,6 +14,7 @@ namespace EFfluentify.Infrastructure.CodeGen
     {
         private IRuleRegistry _rules;
         private IReadOnlyList<EntityModel> _entities = [];
+        private IReadOnlySet<string> _entityNames = new HashSet<string>();
 
         public CSharpConfigEmitter()
         {
@@ -22,6 +26,7 @@ namespace EFfluentify.Infrastructure.CodeGen
         {
             _rules = rules ?? throw new ArgumentNullException(nameof(rules));
             _entities = entities?.ToList() ?? throw new ArgumentNullException(nameof(entities));
+            _entityNames = EfTypeHelper.BuildEntityNameSet(_entities);
 
             return options.ManyFiles 
                 ? GenerateMultipleFiles(options.RootNamespace) 
@@ -36,7 +41,7 @@ namespace EFfluentify.Infrastructure.CodeGen
             {
                 var sb = AddHeader(rootNs);
                 AppendConfig(sb, e);
-                map[$"{e.Name}Configuration.cs"] = sb.ToString();
+                map[$"{e.Name}Configuration.cs"] = Format(sb.ToString());
             }
 
             return map;
@@ -53,8 +58,20 @@ namespace EFfluentify.Infrastructure.CodeGen
                 sb.AppendLine();
             }
             
-            map["EntityConfigurations.cs"] = sb.ToString();
+            map["EntityConfigurations.cs"] = Format(sb.ToString());
             return map;
+        }
+
+        private static string Format(string source)
+        {
+            var root = CSharpSyntaxTree.ParseText(source).GetRoot();
+
+            if (root.GetDiagnostics().Any(d => d.Severity == DiagnosticSeverity.Error))
+                return source;
+
+            return root
+                .NormalizeWhitespace(indentation: "    ", eol: Environment.NewLine)
+                .ToFullString();
         }
 
         private void AppendConfig(StringBuilder sb, EntityModel entity)
@@ -87,7 +104,7 @@ namespace EFfluentify.Infrastructure.CodeGen
 
         private void ConfigureProperties(StringBuilder sb, EntityModel entity)
         {
-            var metadata = new EntityMetadata(entity, _entities);
+            var metadata = new EntityMetadata(entity, _entityNames);
 
             foreach (var prop in entity.Properties)
             {

@@ -66,11 +66,12 @@ namespace EFfluentify.Infrastructure.Roslyn
 
         private Property ParseProperty(PropertyDeclarationSyntax prop)
         {
+            var typeName = prop.Type.ToString();
             var property = new Property
             {
                 Name = prop.Identifier.Text,
-                TypeName = prop.Type.ToString(),
-                IsNullable = prop.Type.ToString().EndsWith("?")
+                TypeName = typeName,
+                IsNullable = typeName.EndsWith("?")
             };
 
             property.Attributes.AddRange(ParseAttributes(prop.AttributeLists));

@@ -5,20 +5,25 @@ namespace EFfluentify.Domain.Rules.Helpers
 {
     public sealed class EntityMetadata
     {
-        private readonly IReadOnlyList<EntityModel> _allEntities;
+        private readonly IReadOnlySet<string> _entityNames;
         private readonly HashSet<string> _keyProperties;
         private readonly HashSet<string> _ignoredProperties;
         private readonly HashSet<string> _foreignKeyProperties;
 
         public EntityMetadata(EntityModel entity, IReadOnlyList<EntityModel> allEntities)
+            : this(entity, EfTypeHelper.BuildEntityNameSet(allEntities))
         {
-            _allEntities = allEntities;
+        }
+
+        public EntityMetadata(EntityModel entity, IReadOnlySet<string> entityNames)
+        {
+            _entityNames = entityNames;
             _keyProperties = GetKeyProperties(entity);
             _ignoredProperties = GetIgnoredProperties(entity);
             _foreignKeyProperties = GetForeignKeyProperties(entity);
         }
 
-        public bool IsNavigationProperty(Property prop) => EfTypeHelper.IsNavigationProperty(prop, _allEntities);
+        public bool IsNavigationProperty(Property prop) => EfTypeHelper.IsNavigationProperty(prop, _entityNames);
         public bool IsIgnored(string propName) => _ignoredProperties.Contains(propName);
         public bool IsKey(string propName) => _keyProperties.Contains(propName);
         public bool IsForeignKey(string propName) => _foreignKeyProperties.Contains(propName);
@@ -53,7 +58,7 @@ namespace EFfluentify.Domain.Rules.Helpers
                 if (string.IsNullOrWhiteSpace(arg0))
                     continue;
 
-                if (EfTypeHelper.IsNavigationProperty(prop, _allEntities) || EfTypeHelper.IsCollectionType(prop.TypeName))
+                if (EfTypeHelper.IsNavigationProperty(prop, _entityNames) || EfTypeHelper.IsCollectionType(prop.TypeName))
                 {
                     foreach (var fk in EfTypeHelper.SplitFkNames(arg0))
                         fkPropNames.Add(fk);

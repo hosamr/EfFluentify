@@ -41,12 +41,20 @@ namespace EFfluentify.Domain.Helpers
             return _scalarTypeNames.Contains(t.TrimEnd('?'));
         }
 
+        public static HashSet<string> BuildEntityNameSet(IEnumerable<EntityModel> entities)
+        {
+            if (entities == null) throw new ArgumentNullException(nameof(entities));
+            return new HashSet<string>(entities.Select(e => e.Name), StringComparer.Ordinal);
+        }
+
         public static bool IsNavigationProperty(Property p, IEnumerable<EntityModel> entities)
+            => IsNavigationProperty(p, BuildEntityNameSet(entities));
+
+        public static bool IsNavigationProperty(Property p, IReadOnlySet<string> entityNames)
         {
             if (p == null) throw new ArgumentNullException(nameof(p));
-            if (entities == null) throw new ArgumentNullException(nameof(entities));
+            if (entityNames == null) throw new ArgumentNullException(nameof(entityNames));
 
-            var entityNames = new HashSet<string>(entities.Select(e => e.Name), StringComparer.Ordinal);
             var typeName = p.TypeName;
 
             if (string.IsNullOrWhiteSpace(typeName))
