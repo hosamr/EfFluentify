@@ -8,9 +8,10 @@ using EFFluentify.Infrastructure.Roslyn;
 using EFFluentify.Tests.Helpers;
 using Xunit;
 
-namespace EFFluentify.Tests.Services
+namespace EFFluentify.Tests.Integration
 {
     [Collection("Sequential Tests")]
+    [Trait("Category", "Integration")]
     public class GeneratedCodeCompilesTests
     {
         [Theory]
@@ -18,6 +19,14 @@ namespace EFFluentify.Tests.Services
         [InlineData("TestCase1", false)]
         [InlineData("TestFkCases", true)]
         [InlineData("TestFkCases", false)]
+        [InlineData("TestScalarAnnotations", true)]
+        [InlineData("TestScalarAnnotations", false)]
+        [InlineData("TestNullability", true)]
+        [InlineData("TestNullability", false)]
+        [InlineData("TestExplicitRelationships", true)]
+        [InlineData("TestExplicitRelationships", false)]
+        [InlineData("TestIndexesAndColumns", true)]
+        [InlineData("TestIndexesAndColumns", false)]
         public async Task Generated_Configuration_Compiles_Against_Input_Entities(
             string testCaseName, bool manyFiles)
         {

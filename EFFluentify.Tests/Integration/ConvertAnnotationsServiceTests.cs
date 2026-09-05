@@ -8,13 +8,14 @@ using EFFluentify.Domain.Rules;
 using EFFluentify.Tests.Helpers;
 using Xunit;
 
-namespace EFFluentify.Tests.Services
+namespace EFFluentify.Tests.Integration
 {
 
     [CollectionDefinition("Sequential Tests", DisableParallelization = true)]
     public class SequentialTestCollection { }
 
     [Collection("Sequential Tests")]
+    [Trait("Category", "Integration")]
     public class ConvertAnnotationsServiceTests
     {
         private const string TestCase1 = "TestCase1";
@@ -61,6 +62,31 @@ namespace EFFluentify.Tests.Services
                 ExpectedOutput,
                 ExpectedOutputRemoval);
         }
+
+        [Theory]
+        [InlineData("TestScalarAnnotations", true)]
+        [InlineData("TestScalarAnnotations", false)]
+        [InlineData("TestNullability", true)]
+        [InlineData("TestNullability", false)]
+        [InlineData("TestExplicitRelationships", true)]
+        [InlineData("TestExplicitRelationships", false)]
+        [InlineData("TestIndexesAndColumns", true)]
+        [InlineData("TestIndexesAndColumns", false)]
+        public async Task Run_Pipeline_For_Additional_Scenarios(string scenario, bool manyFiles)
+        {
+            var options = new PipelineOptions
+            {
+                RemoveAnnotationsFromOriginal = false,
+                ManyFiles = manyFiles
+            };
+
+            await RunTestCaseWithOptionsAsync(
+                options,
+                scenario,
+                ExpectedOutput,
+                ExpectedOutputRemoval);
+        }
+
         [Fact]
         public async Task Fails_For_TestCase1_When_OutputDirectory_IsInvalid()
         {
@@ -72,20 +98,28 @@ namespace EFFluentify.Tests.Services
             var generator = new CSharpConfigEmitter();
             var useCase = new ConvertAnnotationsService(builder, generator, new RuleRegistryFactory());
 
+            var blockingFile = Path.GetTempFileName();
             var options = new PipelineOptions
             {
-                OutputDirectory = @"Z:\This\Path\Cannot\Exist",
+                OutputDirectory = Path.Combine(blockingFile, "This", "Path", "Cannot", "Exist"),
                 RemoveAnnotationsFromOriginal = false,
                 ManyFiles = true
             };
 
             IEnumerable<string> inputs = new[] { inputDir };
 
-            await Assert.ThrowsAsync<DirectoryNotFoundException>(async () =>
+            try
             {
-                var results = await useCase.RunAsync(inputs, options);
-                await fileManager.WriteFilesToDiskAsync(results, options.OutputDirectory);
-            });
+                await Assert.ThrowsAnyAsync<IOException>(async () =>
+                {
+                    var results = await useCase.RunAsync(inputs, options);
+                    await fileManager.WriteFilesToDiskAsync(results, options.OutputDirectory);
+                });
+            }
+            finally
+            {
+                File.Delete(blockingFile);
+            }
         }
 
         [Fact]
@@ -112,7 +146,7 @@ namespace EFFluentify.Tests.Services
         [Fact]
         public async Task TestCase1_When_InputDirectory_IsInvalid_Should_DoNothing()
         {
-            string invalidInputDir = @"Z:\Invalid\Path\That\Does\Not\Exist";
+            string invalidInputDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "does-not-exist");
 
             var tempDir = Directory.CreateTempSubdirectory("EFFluentifyTests_").FullName;
             var outputDir = Path.Combine(tempDir, "EFFluentify.Tests", "Output");
