@@ -67,10 +67,20 @@ namespace EFFluentify.Tests.Unit.Roslyn
         {
             const string source = @"namespace N { public class C { [JsonIgnore] public int Id { get; set; } } }";
 
-            // No mapped annotation is present, so nothing should be removed. The remover may still
-            // report a whitespace-only rewrite, but any reported change must preserve [JsonIgnore].
+            // No mapped annotation is present, so nothing should be removed and the file must be
+            // left completely untouched (not even reformatted).
             var changes = await Prepare(("C.cs", source));
-            Assert.All(changes, c => Assert.Contains("JsonIgnore", c.UpdatedContent));
+            Assert.Empty(changes);
+        }
+
+        [Fact]
+        public async Task FileWithNoAnnotationsAtAll_IsNotReportedAsChanged()
+        {
+            // Deliberately odd formatting: the remover must not report a whitespace-only rewrite.
+            const string source = "namespace N {\r\n  public class Plain {\r\n     public int Id {get;set;}\r\n     public string  Name {get;set;}\r\n  }\r\n}\r\n";
+
+            var changes = await Prepare(("Plain.cs", source));
+            Assert.Empty(changes);
         }
 
         [Fact]

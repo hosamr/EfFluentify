@@ -40,6 +40,11 @@ namespace EFFluentify.Infrastructure.Roslyn
                 var rewriter = new AnnotationStripper(targets);
                 var newRoot = (CompilationUnitSyntax)rewriter.Visit(root);
 
+                if (rewriter.RemovedCount == 0)
+                {
+                    return;
+                }
+
                 var updated = newRoot.NormalizeWhitespace().ToFullString();
 
                 if (!string.Equals(original, updated, StringComparison.Ordinal))
@@ -60,6 +65,8 @@ namespace EFFluentify.Infrastructure.Roslyn
         {
             private readonly HashSet<string> _targets;
 
+            public int RemovedCount { get; private set; }
+
             public AnnotationStripper(HashSet<string> targets)
             {
                 _targets = targets;
@@ -70,9 +77,13 @@ namespace EFFluentify.Infrastructure.Roslyn
                 var kept = new SeparatedSyntaxList<AttributeSyntax>();
                 foreach (var attr in node.Attributes)
                 {
-                    if (!IsTarget(attr))
+                    if (IsTarget(attr))
+                        RemovedCount++;
+                    else
                         kept = kept.Add(attr);
                 }
+
+                if (kept.Count == node.Attributes.Count) return node;
 
                 if (kept.Count == 0) return null;
 

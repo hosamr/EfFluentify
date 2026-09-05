@@ -36,7 +36,8 @@ namespace EFFluentify.Infrastructure.Roslyn
             if (root == null) yield break;
 
             var ns = root.DescendantNodes().OfType<BaseNamespaceDeclarationSyntax>().FirstOrDefault()?.Name.ToString() ?? "";
-            var classes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+            var classes = root.DescendantNodes().OfType<ClassDeclarationSyntax>()
+                .Where(c => c.Parent is not TypeDeclarationSyntax);
 
             foreach (var clss in classes)
             {
@@ -52,7 +53,7 @@ namespace EFFluentify.Infrastructure.Roslyn
                 Name = clss.Identifier.Text
             };
 
-            var properties = clss.DescendantNodes().OfType<PropertyDeclarationSyntax>();
+            var properties = clss.Members.OfType<PropertyDeclarationSyntax>();
             foreach (var prop in properties)
             {
                 entity.Properties.Add(ParseProperty(prop));

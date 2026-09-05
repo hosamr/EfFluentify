@@ -75,6 +75,36 @@ namespace EFFluentify.Tests.Unit.Domain
         }
 
         [Fact]
+        public void Key_Composite_OrdersByColumnOrder()
+        {
+            var entity = ModelFactory.Entity("Team", new[]
+            {
+                ModelFactory.Prop("B", "int", attrs: new[]
+                {
+                    ModelFactory.Attr("Key"),
+                    ModelFactory.Attr("Column").Named("Order", "1")
+                }),
+                ModelFactory.Prop("A", "int", attrs: new[]
+                {
+                    ModelFactory.Attr("Key"),
+                    ModelFactory.Attr("Column").Named("Order", "0")
+                })
+            });
+            Assert.Equal(new[] { "builder.HasKey(e => new { e.A, e.B });" }, Apply(new KeyAttributeToHasKeyRule(), entity));
+        }
+
+        [Fact]
+        public void Key_Composite_WithoutColumnOrder_PreservesDeclarationOrder()
+        {
+            var entity = ModelFactory.Entity("Team", new[]
+            {
+                ModelFactory.Prop("TeamId", "int", attrs: new[] { ModelFactory.Attr("Key") }),
+                ModelFactory.Prop("LeagueId", "int", attrs: new[] { ModelFactory.Attr("Key") })
+            });
+            Assert.Equal(new[] { "builder.HasKey(e => new { e.TeamId, e.LeagueId });" }, Apply(new KeyAttributeToHasKeyRule(), entity));
+        }
+
+        [Fact]
         public void Key_NoKeyProperties_DoesNotApply()
         {
             var entity = ModelFactory.Entity("User", new[] { ModelFactory.Prop("Id", "int") });

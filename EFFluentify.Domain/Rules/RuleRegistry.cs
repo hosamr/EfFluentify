@@ -17,7 +17,10 @@ namespace EFFluentify.Domain.Rules
         public IEnumerable<string> GetCallsForProperty(Property property)
         {
             var attributes = property.Attributes.ToList();
-            if (property.IsNullable && !attributes.Any(a => a.Name == "Nullable"))
+
+            var hasRequired = attributes.Any(a => a.Name == "Required");
+
+            if (property.IsNullable && !hasRequired && !attributes.Any(a => a.Name == "Nullable"))
                 attributes.Add(new AttributeEntry { Name = "Nullable" });
 
             foreach (var attr in attributes)

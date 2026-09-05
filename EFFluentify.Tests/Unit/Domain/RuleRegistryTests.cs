@@ -39,6 +39,27 @@ namespace EFFluentify.Tests.Unit.Domain
         }
 
         [Fact]
+        public void GetCallsForProperty_RequiredOnNullableValueType_EmitsOnlyIsRequired()
+        {
+            var registry = Factory.Create();
+            var prop = Prop("Age", "int?", nullable: true, Attr("Required"));
+
+            Assert.Equal(new[] { ".IsRequired()" }, registry.GetCallsForProperty(prop).ToList());
+        }
+
+        [Fact]
+        public void GetCallsForProperty_RequiredOnNullableReferenceType_DoesNotEmitIsRequiredFalse()
+        {
+            var registry = Factory.Create();
+            var prop = Prop("Title", "string?", nullable: true, Attr("Required"));
+
+            var calls = registry.GetCallsForProperty(prop).ToList();
+
+            Assert.Contains(".IsRequired()", calls);
+            Assert.DoesNotContain(".IsRequired(false)", calls);
+        }
+
+        [Fact]
         public void GetCallsForEntity_CombinesEntityRules()
         {
             var registry = Factory.Create();

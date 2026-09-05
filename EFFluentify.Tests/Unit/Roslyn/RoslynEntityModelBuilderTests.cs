@@ -111,6 +111,40 @@ namespace N
         }
 
         [Fact]
+        public async Task NestedClass_IsNotEmittedAsSeparateEntity()
+        {
+            var entities = await Build(("Outer.cs", @"
+namespace N
+{
+    public class Outer
+    {
+        public int Id { get; set; }
+        public class Inner { public string X { get; set; } }
+    }
+}"));
+
+            var outer = Assert.Single(entities);
+            Assert.Equal("Outer", outer.Name);
+        }
+
+        [Fact]
+        public async Task NestedClass_PropertiesDoNotLeakIntoParent()
+        {
+            var entities = await Build(("Outer.cs", @"
+namespace N
+{
+    public class Outer
+    {
+        public int Id { get; set; }
+        public class Inner { public string X { get; set; } }
+    }
+}"));
+
+            var outer = Assert.Single(entities);
+            Assert.Equal(new[] { "Id" }, outer.Properties.Select(p => p.Name).ToArray());
+        }
+
+        [Fact]
         public async Task IgnoresNonCSharpFiles()
         {
             var entities = await Build(
