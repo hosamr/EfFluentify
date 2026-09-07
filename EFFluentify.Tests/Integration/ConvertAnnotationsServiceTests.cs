@@ -123,27 +123,6 @@ namespace EFFluentify.Tests.Integration
         }
 
         [Fact]
-        public async Task RegenerateTestFkCases_ExpectedOutput_SingleFile()
-        {
-            var solutionRoot = TestingHelper.FindSolutionRoot();
-            var testProjectRoot = Path.Combine(solutionRoot, "EFFluentify.Tests");
-            var inputDir = Path.Combine(testProjectRoot, "TestData", TestFkCases);
-
-            var options = new PipelineOptions
-            {
-                RemoveAnnotationsFromOriginal = false,
-                ManyFiles = false,
-                OutputDirectory = Path.Combine(solutionRoot, ExpectedOutput, "TestFkCasesSingleFile")
-            };
-
-            IFileManager fileManager = new FileManager();
-            var useCase = CreateUseCase(fileManager);
-            IEnumerable<string> inputs = new[] { inputDir };
-
-            var results = await useCase.RunAsync(inputs, options);
-            await fileManager.WriteFilesToDiskAsync(results, options.OutputDirectory);
-        }
-        [Fact]
         public async Task TestCase1_When_InputDirectory_IsInvalid_Should_DoNothing()
         {
             string invalidInputDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "does-not-exist");
@@ -151,23 +130,27 @@ namespace EFFluentify.Tests.Integration
             var tempDir = Directory.CreateTempSubdirectory("EFFluentifyTests_").FullName;
             var outputDir = Path.Combine(tempDir, "EFFluentify.Tests", "Output");
 
-            IFileManager fileManager = new FileManager();
-            var builder = new RoslynEntityModelBuilder(fileManager);
-            var generator = new CSharpConfigEmitter();
-            var useCase = new ConvertAnnotationsService(builder, generator, new RuleRegistryFactory());
-
-            var options = new PipelineOptions
+            try
             {
-                OutputDirectory = outputDir,
-                RemoveAnnotationsFromOriginal = true,
-                ManyFiles = true
-            };
+                IFileManager fileManager = new FileManager();
+                var useCase = CreateUseCase(fileManager);
 
-            IEnumerable<string> inputs = new[] { invalidInputDir };
+                var options = new PipelineOptions
+                {
+                    OutputDirectory = outputDir,
+                    ManyFiles = true
+                };
 
-            var results = await useCase.RunAsync(inputs, options);
-            Assert.Empty(results);
-            Assert.False(Directory.Exists(outputDir), "Output directory should not be created when input directory is invalid.");
+                IEnumerable<string> inputs = new[] { invalidInputDir };
+
+                var results = await useCase.RunAsync(inputs, options);
+                Assert.Empty(results);
+                Assert.False(Directory.Exists(outputDir), "Output directory should not be created when input directory is invalid.");
+            }
+            finally
+            {
+                try { Directory.Delete(tempDir, recursive: true); } catch { }
+            }
         }
 
         private async Task RunTestCaseWithOptionsAsync(PipelineOptions pipelineOptions, string testcaseName, string expectedOutput, string expectedOutputRemoval)

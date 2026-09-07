@@ -85,7 +85,7 @@ dotnet run --project EFFluentify.Cli -- --input ./Models --out ./Configurations
 ## Usage
 
 ```bash
-effluentify --input <paths...> [--out <dir>] [--manyFiles] [--removeAnnotationsFromMyOriginal] [--namespace <ns>]
+effluentify --input <path> [--input <path> ...] [--out <dir>] [--manyFiles] [--removeAnnotationsFromMyOriginal] [--namespace <ns>]
 ```
 
 If you run `effluentify` with no arguments, it prompts you to enter the command line interactively.
@@ -94,7 +94,7 @@ If you run `effluentify` with no arguments, it prompts you to enter the command 
 
 | Option | Alias | Description | Default |
 | --- | --- | --- | --- |
-| `--input` | | **Required.** One or more input paths. A path may be a `.cs` file or a directory (directories are scanned recursively for `.cs` files). | |
+| `--input` | | **Required.** One or more input paths — repeat the flag for multiple (`--input ./A --input ./B`). A path may be a `.cs` file or a directory (directories are scanned recursively for `.cs` files). | |
 | `--out` | | Output directory. When omitted, generated code is written to the console instead of disk. | console |
 | `--manyFiles` | | Emit one configuration file per entity. When omitted, all configurations go into a single file. | off |
 | `--removeAnnotationsFromMyOriginal` | | Remove the converted annotations from the original source files. A `.bak` backup is written next to each modified file. | off |
