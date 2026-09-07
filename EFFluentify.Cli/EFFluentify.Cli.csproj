@@ -9,7 +9,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>effluentify</ToolCommandName>
     <PackageId>EFFluentify.Tool</PackageId>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <Authors>Hosam Eldeen Reda</Authors>
     <Description>A .NET CLI tool that converts Entity Framework Core Data Annotations into equivalent Fluent API IEntityTypeConfiguration&lt;T&gt; classes, using Roslyn.</Description>
     <PackageTags>efcore;entity-framework;fluent-api;data-annotations;roslyn;dotnet-tool;codegen</PackageTags>
