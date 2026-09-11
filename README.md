@@ -1,5 +1,8 @@
 # EFFluentify
-
+[![NuGet](https://img.shields.io/nuget/v/EFFluentify.Tool.svg)](https://www.nuget.org/packages/EFFluentify.Tool)
+[![Downloads](https://img.shields.io/nuget/dt/EFFluentify.Tool.svg)](https://www.nuget.org/packages/EFFluentify.Tool)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![.NET](https://img.shields.io/badge/.NET-9.0-512BD4.svg)](https://dotnet.microsoft.com/)
 **EFFluentify** is a .NET CLI tool that converts Entity Framework Core **Data Annotations** into equivalent **Fluent API** configurations. Point it at your entity classes and it generates clean `IEntityTypeConfiguration<T>` classes, optionally stripping the now-redundant annotations from your original source.
 
 It parses your C# with **Roslyn**, so it understands your real types and relationships rather than matching strings.
